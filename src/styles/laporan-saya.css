@@ -1,0 +1,919 @@
+/* ========================================
+   LAPORAN SAYA
+======================================== */
+
+* {
+  box-sizing: border-box;
+}
+
+.laporan-saya-page {
+  min-height: 100vh;
+  width: 100%;
+  position: relative;
+  overflow-x: hidden;
+  background:
+    radial-gradient(
+      circle at 15% 10%,
+      rgba(37, 99, 235, 0.13),
+      transparent 28%
+    ),
+    radial-gradient(
+      circle at 85% 75%,
+      rgba(14, 165, 233, 0.12),
+      transparent 30%
+    ),
+    linear-gradient(
+      135deg,
+      #f8fbff 0%,
+      #eef6ff 45%,
+      #ffffff 100%
+    );
+  color: #0f172a;
+}
+
+/* ========================================
+   BACKGROUND
+======================================== */
+
+.laporan-saya-background {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+  z-index: 0;
+}
+
+.laporan-saya-grid {
+  position: absolute;
+  inset: 0;
+
+  background-image:
+    linear-gradient(
+      rgba(37, 99, 235, 0.035) 1px,
+      transparent 1px
+    ),
+    linear-gradient(
+      90deg,
+      rgba(37, 99, 235, 0.035) 1px,
+      transparent 1px
+    );
+
+  background-size: 45px 45px;
+  mask-image: linear-gradient(
+    to bottom,
+    black,
+    transparent 90%
+  );
+}
+
+.laporan-saya-orb {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(2px);
+}
+
+.laporan-saya-orb-one {
+  width: 380px;
+  height: 380px;
+  top: 10%;
+  left: -180px;
+  background: rgba(59, 130, 246, 0.08);
+}
+
+.laporan-saya-orb-two {
+  width: 450px;
+  height: 450px;
+  right: -220px;
+  bottom: -100px;
+  background: rgba(14, 165, 233, 0.08);
+}
+
+/* ========================================
+   MAIN
+======================================== */
+
+.laporan-saya-main {
+  position: relative;
+  z-index: 1;
+  padding: 95px 0 90px;
+}
+
+.laporan-saya-container {
+  width: min(1100px, calc(100% - 40px));
+  margin: 0 auto;
+}
+
+/* ========================================
+   BACK BUTTON
+======================================== */
+
+.laporan-saya-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+
+  color: #475569;
+  text-decoration: none;
+
+  font-size: 14px;
+  font-weight: 600;
+
+  margin-bottom: 30px;
+
+  transition:
+    color 0.25s ease,
+    transform 0.25s ease;
+}
+
+.laporan-saya-back span {
+  font-size: 20px;
+  line-height: 1;
+}
+
+.laporan-saya-back:hover {
+  color: #2563eb;
+  transform: translateX(-3px);
+}
+
+/* ========================================
+   HEADING
+======================================== */
+
+.laporan-saya-heading {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 30px;
+
+  margin-bottom: 35px;
+}
+
+.laporan-saya-label {
+  display: inline-block;
+
+  margin-bottom: 10px;
+
+  color: #2563eb;
+
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+}
+
+.laporan-saya-heading h1 {
+  margin: 0;
+
+  font-size: clamp(34px, 5vw, 52px);
+  line-height: 1.05;
+  letter-spacing: -0.04em;
+
+  color: #0f172a;
+}
+
+.laporan-saya-heading p {
+  max-width: 650px;
+
+  margin: 14px 0 0;
+
+  color: #64748b;
+
+  font-size: 15px;
+  line-height: 1.7;
+}
+
+/* ========================================
+   CREATE BUTTON
+======================================== */
+
+.laporan-saya-create {
+  flex-shrink: 0;
+
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+
+  padding: 13px 19px;
+
+  border-radius: 12px;
+
+  background: linear-gradient(
+    135deg,
+    #2563eb,
+    #0ea5e9
+  );
+
+  color: #ffffff;
+  text-decoration: none;
+
+  font-size: 14px;
+  font-weight: 700;
+
+  box-shadow:
+    0 12px 25px rgba(37, 99, 235, 0.18);
+
+  transition:
+    transform 0.25s ease,
+    box-shadow 0.25s ease;
+}
+
+.laporan-saya-create span {
+  font-size: 20px;
+  line-height: 1;
+}
+
+.laporan-saya-create:hover {
+  transform: translateY(-2px);
+
+  box-shadow:
+    0 16px 30px rgba(37, 99, 235, 0.25);
+}
+
+/* ========================================
+   SUMMARY
+======================================== */
+
+.laporan-saya-summary {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 15px;
+
+  margin-bottom: 25px;
+}
+
+.laporan-saya-summary-card {
+  padding: 20px 22px;
+
+  background: rgba(255, 255, 255, 0.78);
+
+  border: 1px solid rgba(148, 163, 184, 0.2);
+
+  border-radius: 16px;
+
+  box-shadow:
+    0 10px 30px rgba(15, 23, 42, 0.045);
+
+  backdrop-filter: blur(14px);
+}
+
+.laporan-saya-summary-card span {
+  display: block;
+
+  margin-bottom: 7px;
+
+  color: #64748b;
+
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.laporan-saya-summary-card strong {
+  color: #0f172a;
+
+  font-size: 28px;
+  line-height: 1;
+}
+
+/* ========================================
+   LIST
+======================================== */
+
+.laporan-saya-list {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+/* ========================================
+   CARD
+======================================== */
+
+.laporan-saya-card {
+  display: block;
+
+  padding: 22px 24px;
+
+  background: rgba(255, 255, 255, 0.86);
+
+  border: 1px solid rgba(148, 163, 184, 0.2);
+
+  border-radius: 18px;
+
+  text-decoration: none;
+
+  box-shadow:
+    0 12px 35px rgba(15, 23, 42, 0.045);
+
+  backdrop-filter: blur(14px);
+
+  transition:
+    transform 0.25s ease,
+    border-color 0.25s ease,
+    box-shadow 0.25s ease;
+}
+
+.laporan-saya-card:hover {
+  transform: translateY(-3px);
+
+  border-color: rgba(37, 99, 235, 0.25);
+
+  box-shadow:
+    0 18px 45px rgba(37, 99, 235, 0.1);
+}
+
+.laporan-saya-card-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 15px;
+
+  margin-bottom: 13px;
+}
+
+.laporan-saya-category {
+  padding: 6px 10px;
+
+  border-radius: 8px;
+
+  background: #eff6ff;
+
+  color: #2563eb;
+
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.laporan-saya-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.laporan-saya-status-dot {
+  width: 7px;
+  height: 7px;
+
+  border-radius: 50%;
+}
+
+.laporan-saya-status.process {
+  color: #d97706;
+}
+
+.laporan-saya-status.process .laporan-saya-status-dot {
+  background: #f59e0b;
+}
+
+.laporan-saya-status.verified {
+  color: #2563eb;
+}
+
+.laporan-saya-status.verified .laporan-saya-status-dot {
+  background: #3b82f6;
+}
+
+.laporan-saya-status.done {
+  color: #16a34a;
+}
+
+.laporan-saya-status.done .laporan-saya-status-dot {
+  background: #22c55e;
+}
+
+.laporan-saya-card h2 {
+  margin: 0 0 10px;
+
+  color: #0f172a;
+
+  font-size: 19px;
+  line-height: 1.35;
+}
+
+.laporan-saya-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+
+  color: #64748b;
+
+  font-size: 13px;
+}
+
+.laporan-saya-card-bottom {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  margin-top: 18px;
+  padding-top: 15px;
+
+  border-top: 1px solid #e2e8f0;
+
+  color: #2563eb;
+
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.laporan-saya-arrow {
+  font-size: 18px;
+
+  transition: transform 0.25s ease;
+}
+
+.laporan-saya-card:hover .laporan-saya-arrow {
+  transform: translateX(4px);
+}
+
+/* ========================================
+   EMPTY STATE
+======================================== */
+
+.laporan-saya-empty {
+  padding: 65px 25px;
+
+  text-align: center;
+
+  background: rgba(255, 255, 255, 0.8);
+
+  border: 1px solid rgba(148, 163, 184, 0.2);
+
+  border-radius: 20px;
+}
+
+.laporan-saya-empty-icon {
+  font-size: 42px;
+  margin-bottom: 15px;
+}
+
+.laporan-saya-empty h2 {
+  margin: 0 0 8px;
+
+  color: #0f172a;
+
+  font-size: 22px;
+}
+
+.laporan-saya-empty p {
+  max-width: 500px;
+
+  margin: 0 auto 22px;
+
+  color: #64748b;
+
+  line-height: 1.7;
+  font-size: 14px;
+}
+
+.laporan-saya-empty-button {
+  display: inline-flex;
+
+  padding: 12px 18px;
+
+  border-radius: 10px;
+
+  background: #2563eb;
+
+  color: white;
+
+  text-decoration: none;
+
+  font-size: 14px;
+  font-weight: 700;
+}
+
+/* ========================================
+   RESPONSIVE
+======================================== */
+
+@media (max-width: 760px) {
+  .laporan-saya-main {
+    padding: 80px 0 65px;
+  }
+
+  .laporan-saya-container {
+    width: min(100% - 28px, 600px);
+  }
+
+  .laporan-saya-heading {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 20px;
+  }
+
+  .laporan-saya-create {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .laporan-saya-summary {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 520px) {
+  .laporan-saya-heading h1 {
+    font-size: 36px;
+  }
+
+  .laporan-saya-heading p {
+    font-size: 14px;
+  }
+
+  .laporan-saya-card {
+    padding: 18px;
+  }
+
+  .laporan-saya-card-top {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .laporan-saya-meta {
+    flex-direction: column;
+    gap: 7px;
+  }
+}
+/* =========================================================
+   REPORT CARD WRAPPER
+========================================================= */
+
+.laporan-saya-card-wrapper {
+  position: relative;
+}
+
+/* =========================================================
+   THREE DOT MENU
+========================================================= */
+
+.laporan-saya-menu {
+  position: absolute;
+
+  top: 17px;
+  right: 17px;
+
+  z-index: 10;
+}
+
+.laporan-saya-menu-button {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+
+  width: 36px;
+  height: 36px;
+
+  padding: 0;
+
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  border-radius: 10px;
+
+  background: rgba(255, 255, 255, 0.9);
+
+  cursor: pointer;
+
+  transition:
+    background 0.2s ease,
+    border-color 0.2s ease,
+    transform 0.2s ease;
+}
+
+.laporan-saya-menu-button:hover {
+  background: #eff6ff;
+  border-color: rgba(37, 99, 235, 0.2);
+
+  transform: translateY(-1px);
+}
+
+.laporan-saya-menu-button span {
+  width: 4px;
+  height: 4px;
+
+  border-radius: 50%;
+
+  background: #64748b;
+}
+
+/* =========================================================
+   DROPDOWN
+========================================================= */
+
+.laporan-saya-dropdown {
+  position: absolute;
+
+  top: 43px;
+  right: 0;
+
+  width: 180px;
+
+  padding: 6px;
+
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  border-radius: 14px;
+
+  background: rgba(255, 255, 255, 0.98);
+
+  box-shadow:
+    0 18px 45px rgba(15, 23, 42, 0.13);
+
+  animation:
+    laporanMenuIn 0.18s ease-out;
+}
+
+@keyframes laporanMenuIn {
+  from {
+    opacity: 0;
+    transform: translateY(-5px) scale(0.97);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.laporan-saya-dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+
+  width: 100%;
+
+  padding: 10px 11px;
+
+  border: none;
+  border-radius: 9px;
+
+  color: #334155;
+  background: transparent;
+
+  text-decoration: none;
+
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+
+  cursor: pointer;
+
+  transition:
+    background 0.2s ease,
+    color 0.2s ease;
+}
+
+.laporan-saya-dropdown-item:hover {
+  background: #eff6ff;
+  color: #2563eb;
+}
+
+.laporan-saya-dropdown-item span {
+  width: 20px;
+
+  color: #64748b;
+
+  font-size: 14px;
+  text-align: center;
+}
+
+.laporan-saya-dropdown-item.delete {
+  color: #dc2626;
+}
+
+.laporan-saya-dropdown-item.delete:hover {
+  color: #dc2626;
+  background: #fef2f2;
+}
+
+.laporan-saya-dropdown-item.delete span {
+  color: #dc2626;
+}
+
+.laporan-saya-delete-disabled {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+
+  padding: 10px 11px;
+
+  color: #94a3b8;
+
+  font-size: 12px;
+  font-weight: 600;
+
+  cursor: not-allowed;
+}
+
+.laporan-saya-delete-disabled span {
+  width: 20px;
+
+  text-align: center;
+}
+
+/* =========================================================
+   DELETE MODAL
+========================================================= */
+
+.laporan-saya-modal-overlay {
+  position: fixed;
+  inset: 0;
+
+  z-index: 9999;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  padding: 20px;
+
+  background: rgba(15, 23, 42, 0.42);
+
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+
+  animation:
+    laporanOverlayIn 0.2s ease-out;
+}
+
+@keyframes laporanOverlayIn {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+.laporan-saya-modal {
+  width: min(100%, 430px);
+
+  padding: 32px;
+
+  border: 1px solid rgba(255, 255, 255, 0.7);
+  border-radius: 24px;
+
+  background: #ffffff;
+
+  text-align: center;
+
+  box-shadow:
+    0 30px 80px rgba(15, 23, 42, 0.2);
+
+  animation:
+    laporanModalIn 0.22s ease-out;
+}
+
+@keyframes laporanModalIn {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.97);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.laporan-saya-modal-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  width: 58px;
+  height: 58px;
+
+  margin: 0 auto 18px;
+
+  border-radius: 17px;
+
+  color: #dc2626;
+  background: #fef2f2;
+
+  font-size: 25px;
+  font-weight: 800;
+}
+
+.laporan-saya-modal h2 {
+  margin: 0 0 10px;
+
+  color: #0f172a;
+
+  font-size: 22px;
+}
+
+.laporan-saya-modal p {
+  margin: 0 auto;
+
+  max-width: 340px;
+
+  color: #64748b;
+
+  font-size: 13px;
+  line-height: 1.7;
+}
+
+.laporan-saya-modal p strong {
+  color: #334155;
+}
+
+.laporan-saya-modal-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+
+  gap: 10px;
+
+  margin-top: 25px;
+}
+
+.laporan-saya-modal-cancel,
+.laporan-saya-modal-delete {
+  height: 44px;
+
+  border-radius: 11px;
+
+  font-family: inherit;
+
+  font-size: 13px;
+  font-weight: 700;
+
+  cursor: pointer;
+
+  transition:
+    transform 0.2s ease,
+    background 0.2s ease;
+}
+
+.laporan-saya-modal-cancel {
+  border: 1px solid #dbe4f0;
+
+  color: #475569;
+  background: #ffffff;
+}
+
+.laporan-saya-modal-cancel:hover {
+  background: #f8fafc;
+
+  transform: translateY(-1px);
+}
+
+.laporan-saya-modal-delete {
+  border: none;
+
+  color: #ffffff;
+  background: #dc2626;
+
+  box-shadow:
+    0 8px 20px rgba(220, 38, 38, 0.18);
+}
+
+.laporan-saya-modal-delete:hover {
+  background: #b91c1c;
+
+  transform: translateY(-1px);
+}
+
+/* =========================================================
+   MOBILE
+========================================================= */
+
+@media (max-width: 600px) {
+  .laporan-saya-menu {
+    top: 14px;
+    right: 14px;
+  }
+
+  .laporan-saya-menu-button {
+    width: 33px;
+    height: 33px;
+  }
+
+  .laporan-saya-dropdown {
+    width: 165px;
+  }
+
+  .laporan-saya-modal {
+    padding: 27px 21px;
+
+    border-radius: 20px;
+  }
+
+  .laporan-saya-modal h2 {
+    font-size: 20px;
+  }
+
+  .laporan-saya-modal-actions {
+    grid-template-columns: 1fr;
+
+    gap: 8px;
+  }
+
+  .laporan-saya-modal-cancel,
+  .laporan-saya-modal-delete {
+    width: 100%;
+  }
+}

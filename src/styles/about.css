@@ -1,0 +1,649 @@
+/* =========================================================
+   ABOUT LAPORKITA
+========================================================= */
+
+.about-laporkita {
+  position: relative;
+  z-index: 2;
+
+  width: 100%;
+  padding: 120px 6vw 110px;
+
+  background:
+    radial-gradient(
+      circle at 85% 20%,
+      rgba(37, 99, 235, 0.055),
+      transparent 30%
+    ),
+    #ffffff;
+
+  border-top: 1px solid rgba(15, 23, 42, 0.05);
+  overflow: hidden;
+}
+
+/* =========================================================
+   BACKGROUND DECORATION
+========================================================= */
+
+.about-laporkita::before {
+  content: "";
+
+  position: absolute;
+
+  width: 420px;
+  height: 420px;
+
+  top: 100px;
+  right: -220px;
+
+  border: 1px solid rgba(37, 99, 235, 0.07);
+  border-radius: 50%;
+
+  pointer-events: none;
+}
+
+.about-laporkita::after {
+  content: "";
+
+  position: absolute;
+
+  width: 260px;
+  height: 260px;
+
+  bottom: -130px;
+  left: -130px;
+
+  border: 1px solid rgba(14, 165, 233, 0.07);
+  border-radius: 50%;
+
+  pointer-events: none;
+}
+
+/* =========================================================
+   CONTAINER
+========================================================= */
+
+.about-container {
+  position: relative;
+  z-index: 2;
+
+  width: 100%;
+  max-width: 1280px;
+
+  margin: 0 auto;
+}
+
+/* =========================================================
+   HEADER
+========================================================= */
+
+.about-header {
+  max-width: 760px;
+
+  margin-bottom: 58px;
+}
+
+.about-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+
+  margin-bottom: 17px;
+
+  color: #2563eb;
+
+  font-size: 11px;
+  font-weight: 800;
+
+  letter-spacing: 0.18em;
+}
+
+.about-label::before {
+  content: "";
+
+  width: 24px;
+  height: 2px;
+
+  border-radius: 5px;
+
+  background: #2563eb;
+}
+
+.about-header h2 {
+  margin: 0;
+
+  color: #0f172a;
+
+  font-size: clamp(40px, 4.3vw, 62px);
+  line-height: 1.04;
+
+  font-weight: 800;
+
+  letter-spacing: -0.05em;
+}
+
+.about-header h2 span {
+  color: #2563eb;
+}
+
+.about-header p {
+  max-width: 650px;
+
+  margin: 22px 0 0;
+
+  color: #64748b;
+
+  font-size: 16px;
+  line-height: 1.8;
+}
+
+/* =========================================================
+   ABOUT GRID
+========================================================= */
+
+.about-grid {
+  display: grid;
+
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+
+  gap: 18px;
+}
+
+/* =========================================================
+   ABOUT CARD
+========================================================= */
+
+.about-card {
+  position: relative;
+
+  min-height: 330px;
+
+  padding: 30px;
+
+  overflow: hidden;
+
+  border: 1px solid #e2e8f0;
+  border-radius: 22px;
+
+  background: #f8fafc;
+
+  transition:
+    transform 0.3s ease,
+    border-color 0.3s ease,
+    box-shadow 0.3s ease;
+}
+
+.about-card::before {
+  content: "";
+
+  position: absolute;
+
+  width: 180px;
+  height: 180px;
+
+  top: -100px;
+  right: -100px;
+
+  border-radius: 50%;
+
+  background: rgba(37, 99, 235, 0.06);
+
+  transition:
+    transform 0.4s ease,
+    background 0.4s ease;
+}
+
+.about-card:hover {
+  transform: translateY(-6px);
+
+  border-color: rgba(37, 99, 235, 0.18);
+
+  box-shadow:
+    0 20px 45px rgba(15, 23, 42, 0.07);
+}
+
+.about-card:hover::before {
+  transform: scale(1.4);
+}
+
+/* =========================================================
+   HIGHLIGHT CARD
+========================================================= */
+
+.about-card-highlight {
+  border-color: rgba(37, 99, 235, 0.16);
+
+  background:
+    linear-gradient(
+      145deg,
+      #eff6ff 0%,
+      #f8fbff 60%,
+      #ffffff 100%
+    );
+
+  box-shadow:
+    0 15px 35px rgba(37, 99, 235, 0.06);
+}
+
+.about-card-highlight::before {
+  background: rgba(37, 99, 235, 0.09);
+}
+
+/* =========================================================
+   CARD NUMBER
+========================================================= */
+
+.about-card-number {
+  position: relative;
+  z-index: 2;
+
+  color: #bfdbfe;
+
+  font-size: 46px;
+  line-height: 1;
+
+  font-weight: 800;
+
+  letter-spacing: -0.06em;
+
+  transition:
+    color 0.3s ease,
+    transform 0.3s ease;
+}
+
+.about-card:hover .about-card-number {
+  color: #93c5fd;
+
+  transform: translateX(4px);
+}
+
+/* =========================================================
+   CARD CONTENT
+========================================================= */
+
+.about-card-content {
+  position: relative;
+  z-index: 2;
+
+  margin-top: 48px;
+}
+
+.about-card-label {
+  display: inline-block;
+
+  color: #2563eb;
+
+  font-size: 10px;
+  font-weight: 800;
+
+  letter-spacing: 0.18em;
+}
+
+.about-card h3 {
+  max-width: 330px;
+
+  margin: 11px 0 14px;
+
+  color: #1e293b;
+
+  font-size: 21px;
+  line-height: 1.32;
+
+  font-weight: 750;
+
+  letter-spacing: -0.025em;
+}
+
+.about-card p {
+  max-width: 350px;
+
+  margin: 0;
+
+  color: #64748b;
+
+  font-size: 13px;
+  line-height: 1.8;
+}
+
+/* =========================================================
+   BOTTOM CTA
+========================================================= */
+
+.about-bottom {
+  position: relative;
+
+  display: flex;
+  align-items: center;
+
+  gap: 18px;
+
+  margin-top: 24px;
+  padding: 23px 25px;
+
+  border: 1px solid #dbeafe;
+  border-radius: 19px;
+
+  background:
+    linear-gradient(
+      105deg,
+      #eff6ff 0%,
+      #f8fbff 55%,
+      #ffffff 100%
+    );
+
+  overflow: hidden;
+}
+
+.about-bottom::after {
+  content: "";
+
+  position: absolute;
+
+  width: 250px;
+  height: 250px;
+
+  right: -100px;
+  top: -150px;
+
+  border-radius: 50%;
+
+  background: rgba(37, 99, 235, 0.06);
+
+  pointer-events: none;
+}
+
+/* =========================================================
+   CTA ICON
+========================================================= */
+
+.about-bottom-icon {
+  position: relative;
+  z-index: 2;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  width: 50px;
+  height: 50px;
+
+  flex-shrink: 0;
+
+  border-radius: 14px;
+
+  background:
+    linear-gradient(
+      135deg,
+      #2563eb,
+      #0ea5e9
+    );
+
+  color: #ffffff;
+
+  font-size: 12px;
+  font-weight: 800;
+
+  letter-spacing: 0.03em;
+
+  box-shadow:
+    0 10px 25px rgba(37, 99, 235, 0.20);
+}
+
+/* =========================================================
+   CTA TEXT
+========================================================= */
+
+.about-bottom-text {
+  position: relative;
+  z-index: 2;
+
+  display: flex;
+  flex-direction: column;
+
+  gap: 4px;
+
+  flex: 1;
+}
+
+.about-bottom-text strong {
+  color: #1e293b;
+
+  font-size: 14px;
+  font-weight: 750;
+}
+
+.about-bottom-text span {
+  color: #64748b;
+
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+/* =========================================================
+   CTA BUTTON
+========================================================= */
+
+.about-button {
+  position: relative;
+  z-index: 2;
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  gap: 12px;
+
+  padding: 12px 14px 12px 18px;
+
+  flex-shrink: 0;
+
+  border-radius: 11px;
+
+  background: #2563eb;
+
+  color: #ffffff;
+
+  text-decoration: none;
+
+  font-size: 12px;
+  font-weight: 700;
+
+  box-shadow:
+    0 8px 20px rgba(37, 99, 235, 0.16);
+
+  transition:
+    transform 0.25s ease,
+    background 0.25s ease,
+    box-shadow 0.25s ease;
+}
+
+.about-button:hover {
+  transform: translateY(-2px);
+
+  background: #1d4ed8;
+
+  box-shadow:
+    0 12px 25px rgba(37, 99, 235, 0.22);
+}
+
+.about-button-arrow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  width: 25px;
+  height: 25px;
+
+  border-radius: 7px;
+
+  background: rgba(255, 255, 255, 0.13);
+
+  font-size: 15px;
+
+  transition:
+    transform 0.25s ease;
+}
+
+.about-button:hover .about-button-arrow {
+  transform: translateX(3px);
+}
+
+/* =========================================================
+   TABLET
+========================================================= */
+
+@media (max-width: 1050px) {
+  .about-laporkita {
+    padding: 100px 5vw 90px;
+  }
+
+  .about-grid {
+    grid-template-columns: 1fr;
+
+    gap: 16px;
+  }
+
+  .about-card {
+    min-height: 270px;
+  }
+
+  .about-card-content {
+    margin-top: 35px;
+  }
+
+  .about-card p {
+    max-width: 600px;
+  }
+}
+
+/* =========================================================
+   MOBILE
+========================================================= */
+
+@media (max-width: 700px) {
+  .about-laporkita {
+    padding: 80px 20px 70px;
+  }
+
+  .about-header {
+    margin-bottom: 40px;
+  }
+
+  .about-label {
+    font-size: 9px;
+    letter-spacing: 0.14em;
+  }
+
+  .about-label::before {
+    width: 18px;
+  }
+
+  .about-header h2 {
+    font-size: 37px;
+    letter-spacing: -0.045em;
+  }
+
+  .about-header p {
+    margin-top: 17px;
+
+    font-size: 14px;
+    line-height: 1.75;
+  }
+
+  .about-card {
+    min-height: auto;
+
+    padding: 24px;
+
+    border-radius: 18px;
+  }
+
+  .about-card-number {
+    font-size: 40px;
+  }
+
+  .about-card-content {
+    margin-top: 32px;
+  }
+
+  .about-card h3 {
+    font-size: 19px;
+  }
+
+  .about-card p {
+    font-size: 12px;
+    line-height: 1.75;
+  }
+
+  .about-bottom {
+    align-items: flex-start;
+
+    flex-wrap: wrap;
+
+    padding: 19px;
+  }
+
+  .about-bottom-text {
+    min-width: calc(100% - 70px);
+  }
+
+  .about-bottom-text strong {
+    font-size: 13px;
+  }
+
+  .about-bottom-text span {
+    font-size: 11px;
+  }
+
+  .about-button {
+    width: 100%;
+  }
+}
+
+/* =========================================================
+   SMALL MOBILE
+========================================================= */
+
+@media (max-width: 430px) {
+  .about-laporkita {
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+
+  .about-header h2 {
+    font-size: 32px;
+  }
+
+  .about-card {
+    padding: 21px;
+  }
+
+  .about-card h3 {
+    font-size: 18px;
+  }
+
+  .about-bottom {
+    gap: 13px;
+  }
+
+  .about-bottom-icon {
+    width: 43px;
+    height: 43px;
+
+    border-radius: 12px;
+  }
+}
+
+/* =========================================================
+   REDUCED MOTION
+========================================================= */
+
+@media (prefers-reduced-motion: reduce) {
+  .about-card,
+  .about-card::before,
+  .about-card-number,
+  .about-button,
+  .about-button-arrow {
+    transition: none;
+  }
+}
