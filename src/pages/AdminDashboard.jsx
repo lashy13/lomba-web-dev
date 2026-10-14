@@ -1,1075 +1,573 @@
-import { useEffect, useMemo, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import {
+  LayoutDashboard,
+  FileText,
+  Clock,
+  CheckCircle,
+  Search,
+  RefreshCw,
+  LogOut,
+  Eye,
+  MapPin,
+  AlertCircle,
+} from "lucide-react";
 
-import Navbar from "../components/Navbar";
 import "../styles/admin-dashboard.css";
 
-const demoReports = [
-  {
-    id: 1,
-    title: "Jalan Rusak di Karangsoka",
-    category: "Infrastruktur",
-    location: "Karangsoka, Purwokerto",
-    date: "1 Oktober 2026",
-    status: "Dalam Proses",
-    statusClass: "process",
-    description:
-      "Terdapat beberapa bagian jalan yang mengalami kerusakan dan cukup mengganggu pengguna jalan.",
-  },
-  {
-    id: 2,
-    title: "Lampu Penerangan Jalan Mati",
-    category: "Penerangan jalan",
-    location: "Purwokerto Selatan",
-    date: "30 September 2026",
-    status: "Diverifikasi",
-    statusClass: "verified",
-    description:
-      "Lampu penerangan jalan tidak menyala pada malam hari sehingga kondisi jalan menjadi kurang terang.",
-  },
-  {
-    id: 3,
-    title: "Saluran Air Tersumbat",
-    category: "Lingkungan",
-    location: "Banyumas, Jawa Tengah",
-    date: "29 September 2026",
-    status: "Selesai",
-    statusClass: "done",
-    description:
-      "Saluran air di sekitar permukiman mengalami penyumbatan dan menyebabkan aliran air tidak lancar.",
-  },
-];
+const API_URL = (
+  import.meta.env.VITE_API_URL || "http://localhost:5000"
+).replace(/\/+$/, "");
 
-const statusOptions = [
-  "Menunggu",
-  "Diverifikasi",
-  "Dalam Proses",
-  "Selesai",
-];
+const STATUS_OPTIONS = ["Menunggu", "Diverifikasi", "Dalam Proses", "Selesai"];
 
-function getStatusClass(status) {
-  switch (status) {
-    case "Diverifikasi":
-      return "verified";
-
-    case "Dalam Proses":
-      return "process";
-
-    case "Selesai":
-      return "done";
-
-    case "Menunggu":
-    default:
-      return "waiting";
-  }
+function getToken() {
+  return (
+    localStorage.getItem("adminToken") || localStorage.getItem("token") || ""
+  );
 }
 
-function getToday() {
-  return new Date().toLocaleDateString("id-ID", {
-    day: "numeric",
-    month: "long",
+function getStatusClass(status) {
+  const normalized = String(status || "Menunggu")
+    .toLowerCase()
+    .replace(/_/g, " ")
+    .trim();
+
+  if (normalized === "selesai") return "selesai";
+
+  if (normalized === "dalam proses" || normalized === "diproses") {
+    return "diproses";
+  }
+
+  if (normalized === "diverifikasi") {
+    return "diverifikasi";
+  }
+
+  return "menunggu";
+}
+
+function formatTanggal(value) {
+  if (!value) return "-";
+
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) return "-";
+
+  return date.toLocaleDateString("id-ID", {
+    day: "2-digit",
+    month: "short",
     year: "numeric",
   });
 }
 
-function getStoredReports() {
-  try {
-    const raw = localStorage.getItem("laporanSaya");
+async function parseResponse(response) {
+  const result = await response.json().catch(() => ({}));
 
-    const parsed = raw ? JSON.parse(raw) : [];
-
-    return Array.isArray(parsed) ? parsed : [];
-  } catch {
-    return [];
+  if (!response.ok) {
+    throw new Error(
+      result.message ||
+        result.error ||
+        `Permintaan gagal dengan status ${response.status}.`,
+    );
   }
-}
 
-function getStoredNotifications() {
-  try {
-    const raw = localStorage.getItem("notifikasi");
-
-    const parsed = raw ? JSON.parse(raw) : [];
-
-    return Array.isArray(parsed) ? parsed : [];
-  } catch {
-    return [];
-  }
-}
-
-function getCombinedReports() {
-  const storedReports = getStoredReports();
-
-  const normalizedReports = storedReports.map((report) => ({
-    ...report,
-
-    category:
-      report.categoryLabel ||
-      report.category ||
-      "Lainnya",
-
-    location:
-      report.location ||
-      report.lokasi?.alamat ||
-      "Lokasi belum tersedia",
-
-    date:
-      report.date ||
-      (report.createdAt
-        ? new Date(report.createdAt).toLocaleDateString(
-            "id-ID",
-            {
-              day: "numeric",
-              month: "long",
-              year: "numeric",
-            },
-          )
-        : "-"),
-
-    status: report.status || "Menunggu",
-
-    statusClass:
-      report.statusClass ||
-      getStatusClass(report.status),
-  }));
-
-  const combined = [
-    ...normalizedReports,
-    ...demoReports,
-  ];
-
-  const uniqueReports = [];
-
-  const usedIds = new Set();
-
-  combined.forEach((report) => {
-    const id = String(report.id);
-
-    if (!usedIds.has(id)) {
-      usedIds.add(id);
-      uniqueReports.push(report);
-    }
-  });
-
-  return uniqueReports;
+  return result;
 }
 
 function AdminDashboard() {
   const navigate = useNavigate();
 
-  const [reports, setReports] = useState(() =>
-    getCombinedReports(),
-  );
-
+  const [laporan, setLaporan] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
   const [search, setSearch] = useState("");
+  const [filterStatus, setFilterStatus] = useState("Semua");
+  const [updatingId, setUpdatingId] = useState(null);
+  const [notification, setNotification] = useState("");
 
-  const [statusFilter, setStatusFilter] =
-    useState("Semua");
-
-  const [selectedReport, setSelectedReport] =
-    useState(null);
-
-  const [newStatus, setNewStatus] = useState("");
-
-  const [adminNote, setAdminNote] = useState("");
-
-  const [showLogoutModal, setShowLogoutModal] =
-    useState(false);
-
-  useEffect(() => {
-    const syncReports = () => {
-      setReports(getCombinedReports());
-    };
-
-    window.addEventListener(
-      "laporanUpdated",
-      syncReports,
-    );
-
-    window.addEventListener(
-      "notificationUpdated",
-      syncReports,
-    );
-
-    window.addEventListener(
-      "storage",
-      syncReports,
-    );
-
-    return () => {
-      window.removeEventListener(
-        "laporanUpdated",
-        syncReports,
-      );
-
-      window.removeEventListener(
-        "notificationUpdated",
-        syncReports,
-      );
-
-      window.removeEventListener(
-        "storage",
-        syncReports,
-      );
-    };
-  }, []);
-
-  const filteredReports = useMemo(() => {
-    const keyword = search.trim().toLowerCase();
-
-    return reports.filter((report) => {
-      const matchesSearch =
-        !keyword ||
-        [
-          report.title,
-          report.category,
-          report.location,
-          report.description,
-          report.username,
-          report.userEmail,
-        ]
-          .filter(Boolean)
-          .some((value) =>
-            String(value)
-              .toLowerCase()
-              .includes(keyword),
-          );
-
-      const matchesStatus =
-        statusFilter === "Semua" ||
-        report.status === statusFilter;
-
-      return matchesSearch && matchesStatus;
-    });
-  }, [reports, search, statusFilter]);
-
-  const totalReports = reports.length;
-
-  const waitingReports = reports.filter(
-    (report) => report.status === "Menunggu",
-  ).length;
-
-  const verifiedReports = reports.filter(
-    (report) => report.status === "Diverifikasi",
-  ).length;
-
-  const processReports = reports.filter(
-    (report) => report.status === "Dalam Proses",
-  ).length;
-
-  const completedReports = reports.filter(
-    (report) => report.status === "Selesai",
-  ).length;
-
-  const openReportModal = (report) => {
-    setSelectedReport(report);
-
-    setNewStatus(
-      report.status || "Menunggu",
-    );
-
-    setAdminNote(
-      report.adminNote || "",
-    );
-  };
-
-  const closeReportModal = () => {
-    setSelectedReport(null);
-    setNewStatus("");
-    setAdminNote("");
-  };
-
-  const createNotification = (
-    currentReport,
-    status,
-    note,
-  ) => {
-    if (!currentReport.userEmail) {
-      return;
-    }
-
-    const notificationMessages = {
-      Menunggu: {
-        title: "Laporan sedang menunggu",
-        message: `Laporan "${currentReport.title}" sedang menunggu proses verifikasi.`,
-        type: "process",
-      },
-
-      Diverifikasi: {
-        title: "Laporan berhasil diverifikasi",
-        message: `Laporan "${currentReport.title}" telah diverifikasi oleh administrator.`,
-        type: "verified",
-      },
-
-      "Dalam Proses": {
-        title: "Laporan sedang diproses",
-        message: `Laporan "${currentReport.title}" sedang dalam proses penanganan.`,
-        type: "process",
-      },
-
-      Selesai: {
-        title: "Laporan telah selesai",
-        message: `Laporan "${currentReport.title}" telah selesai ditangani.`,
-        type: "success",
-      },
-    };
-
-    const notificationData =
-      notificationMessages[status] || {
-        title: "Status laporan diperbarui",
-        message: `Status laporan "${currentReport.title}" telah diperbarui menjadi ${status}.`,
-        type: "process",
-      };
-
-    const existingNotifications =
-      getStoredNotifications();
-
-    const notification = {
-      id: `notif-${Date.now()}-${currentReport.id}`,
-
-      userEmail:
-        currentReport.userEmail,
-
-      reportId: currentReport.id,
-
-      title:
-        notificationData.title,
-
-      message:
-        notificationData.message,
-
-      type:
-        notificationData.type,
-
-      note:
-        note?.trim() || "",
-
-      read: false,
-
-      createdAt:
-        new Date().toISOString(),
-    };
-
-    const updatedNotifications = [
-      notification,
-      ...existingNotifications,
-    ];
-
-    localStorage.setItem(
-      "notifikasi",
-      JSON.stringify(
-        updatedNotifications,
-      ),
-    );
-
-    localStorage.setItem(
-      "notificationUpdatedAt",
-      new Date().toISOString(),
-    );
-
-    window.dispatchEvent(
-      new Event("notificationUpdated"),
-    );
-  };
-
-  const updateReportStatus = () => {
-    if (!selectedReport) {
-      return;
-    }
+  const fetchLaporan = useCallback(async () => {
+    setLoading(true);
+    setError("");
 
     try {
-      const allReports = getStoredReports();
+      const token = getToken();
 
-      const reportIndex =
-        allReports.findIndex(
-          (report) =>
-            String(report.id) ===
-            String(selectedReport.id),
-        );
-
-      if (reportIndex === -1) {
-        alert(
-          "Laporan demo tidak dapat diubah. Buat laporan dari akun pengguna untuk mencoba fitur ini.",
-        );
-
+      if (!token) {
+        navigate("/admin-login", { replace: true });
         return;
       }
 
-      const currentReport =
-        allReports[reportIndex];
-
-      const previousStatus =
-        currentReport.status ||
-        "Menunggu";
-
-      const today = getToday();
-
-      const updatedTimeline =
-        Array.isArray(
-          currentReport.timeline,
-        )
-          ? currentReport.timeline.map(
-              (item) => ({
-                ...item,
-              }),
-            )
-          : [];
-
-      const statusIndex =
-        statusOptions.indexOf(
-          newStatus,
-        );
-
-      const defaultTimeline = [
-        {
-          title: "Laporan dikirim",
-          description:
-            "Laporan berhasil dikirim dan sedang menunggu pemeriksaan.",
-          completed:
-            statusIndex >= 0,
-          date:
-            currentReport.date ||
-            today,
+      const response = await fetch(`${API_URL}/api/reports/admin/reports`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
         },
-        {
-          title:
-            "Laporan diverifikasi",
-          description:
-            "Laporan telah diperiksa oleh petugas.",
-          completed:
-            statusIndex >= 1,
-        },
-        {
-          title: "Dalam proses",
-          description:
-            "Laporan sedang ditindaklanjuti oleh pihak terkait.",
-          completed:
-            statusIndex >= 2,
-        },
-        {
-          title: "Selesai",
-          description:
-            "Permasalahan telah selesai ditangani.",
-          completed:
-            statusIndex >= 3,
-        },
-      ];
+      });
 
-      let timeline =
-        updatedTimeline.length >= 4
-          ? updatedTimeline
-          : defaultTimeline;
+      const result = await parseResponse(response);
 
-      timeline = timeline.map(
-        (item, index) => ({
-          ...item,
+      // Mendukung respons berupa array langsung atau { data: [...] }.
+      const data = Array.isArray(result)
+        ? result
+        : Array.isArray(result.data)
+          ? result.data
+          : null;
 
-          completed:
-            index <= statusIndex,
-
-          date:
-            index <= statusIndex
-              ? item.date || today
-              : item.date,
-        }),
-      );
-
-      const updatedReport = {
-        ...currentReport,
-
-        status: newStatus,
-
-        statusClass:
-          getStatusClass(newStatus),
-
-        adminNote:
-          adminNote.trim(),
-
-        updatedAt:
-          new Date().toISOString(),
-
-        timeline,
-      };
-
-      allReports[reportIndex] =
-        updatedReport;
-
-      localStorage.setItem(
-        "laporanSaya",
-        JSON.stringify(allReports),
-      );
-
-      /*
-       * ========================================
-       * BUAT NOTIFIKASI UNTUK USER
-       * ========================================
-       *
-       * Notifikasi hanya dibuat jika status
-       * memang berubah.
-       */
-
-      if (previousStatus !== newStatus) {
-        createNotification(
-          currentReport,
-          newStatus,
-          adminNote,
-        );
+      if (!data) {
+        throw new Error("Format data laporan dari server tidak sesuai.");
       }
 
-      localStorage.setItem(
-        "notificationUpdatedAt",
-        new Date().toISOString(),
-      );
-
-      window.dispatchEvent(
-        new Event("laporanUpdated"),
-      );
-
-      window.dispatchEvent(
-        new Event("notificationUpdated"),
-      );
-
-      setReports(
-        getCombinedReports(),
-      );
-
-      closeReportModal();
-
-      alert(
-        "Status laporan berhasil diperbarui.",
-      );
-    } catch (error) {
-      console.error(
-        "Gagal memperbarui laporan:",
-        error,
-      );
-
-      alert(
-        "Terjadi kesalahan saat memperbarui laporan.",
-      );
+      setLaporan(data);
+    } catch (err) {
+      setError(err.message || "Terjadi kesalahan saat mengambil data laporan.");
+    } finally {
+      setLoading(false);
     }
-  };
+  }, [navigate]);
 
-  const handleAdminLogout = () => {
-    localStorage.removeItem(
-      "adminLoggedIn",
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      void fetchLaporan();
+    }, 0);
+
+    return () => clearTimeout(timer);
+  }, [fetchLaporan]);
+
+  const statistik = useMemo(() => {
+    return {
+      total: laporan.length,
+
+      menunggu: laporan.filter(
+        (item) => getStatusClass(item.status) === "menunggu",
+      ).length,
+
+      diproses: laporan.filter((item) =>
+        ["diverifikasi", "diproses"].includes(getStatusClass(item.status)),
+      ).length,
+
+      selesai: laporan.filter(
+        (item) => getStatusClass(item.status) === "selesai",
+      ).length,
+    };
+  }, [laporan]);
+
+  const laporanTersaring = useMemo(() => {
+    const keyword = search.trim().toLowerCase();
+
+    return laporan.filter((item) => {
+      const kolomPencarian = [
+        item.title,
+        item.category_name,
+        item.village_name,
+        item.district_name,
+        item.regency_name,
+        item.address,
+      ];
+
+      const cocokPencarian =
+        keyword === "" ||
+        kolomPencarian
+          .filter(Boolean)
+          .some((value) => String(value).toLowerCase().includes(keyword));
+
+      const cocokStatus =
+        filterStatus === "Semua" ||
+        getStatusClass(item.status) === getStatusClass(filterStatus);
+
+      return cocokPencarian && cocokStatus;
+    });
+  }, [laporan, search, filterStatus]);
+
+  async function ubahStatus(item, statusBaru) {
+    if (statusBaru === item.status || updatingId !== null) {
+      return;
+    }
+
+    const catatan = window.prompt(
+      `Tambahkan catatan untuk status "${statusBaru}" (opsional):`,
+      item.admin_note || "",
     );
 
-    localStorage.removeItem(
-      "adminUser",
-    );
+    if (catatan === null) return;
 
-    setShowLogoutModal(false);
+    setUpdatingId(item.id);
+    setError("");
+    setNotification("");
 
-    navigate("/login");
-  };
+    try {
+      const token = getToken();
+
+      if (!token) {
+        navigate("/admin-login", { replace: true });
+        return;
+      }
+
+      const response = await fetch(`${API_URL}/api/reports/${item.id}/status`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          status: statusBaru,
+          admin_note: catatan,
+        }),
+      });
+
+      await parseResponse(response);
+
+      setLaporan((current) =>
+        current.map((report) =>
+          report.id === item.id
+            ? {
+                ...report,
+                status: statusBaru,
+                admin_note: catatan,
+              }
+            : report,
+        ),
+      );
+
+      setNotification(
+        `Status laporan "${item.title || `#${item.id}`}" berhasil diperbarui.`,
+      );
+    } catch (err) {
+      setError(err.message || "Gagal memperbarui status laporan.");
+    } finally {
+      setUpdatingId(null);
+    }
+  }
+
+  function logout() {
+    const yakin = window.confirm("Yakin ingin keluar dari dashboard admin?");
+
+    if (!yakin) return;
+
+    localStorage.removeItem("adminToken");
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+    localStorage.removeItem("adminLoggedIn");
+    localStorage.removeItem("adminUser");
+
+    navigate("/admin-login", { replace: true });
+  }
 
   return (
-    <main className="admin-dashboard-page">
-      <Navbar />
-
-      <div className="admin-dashboard-background">
-        <div className="admin-dashboard-grid"></div>
-
-        <div className="admin-dashboard-orb admin-dashboard-orb-one"></div>
-
-        <div className="admin-dashboard-orb admin-dashboard-orb-two"></div>
-      </div>
-
-      <section className="admin-dashboard-main">
-        <div className="admin-dashboard-container">
-          {/* HEADER */}
-
-          <div className="admin-dashboard-header">
-            <div>
-              <span className="admin-dashboard-label">
-                ADMINISTRATOR
-              </span>
-
-              <h1>Dashboard</h1>
-
-              <p>
-                Kelola dan pantau laporan
-                masyarakat melalui satu pusat
-                kendali.
-              </p>
-            </div>
-
-            <button
-              type="button"
-              className="admin-logout-button"
-              onClick={() =>
-                setShowLogoutModal(true)
-              }
-            >
-              Keluar
-            </button>
+    <div className="admin-dashboard">
+      <aside className="admin-sidebar">
+        <div className="admin-brand">
+          <div className="admin-brand-icon">
+            <LayoutDashboard size={24} />
           </div>
 
-          {/* STATISTICS */}
-
-          <div className="admin-stat-grid">
-            <div className="admin-stat-card total">
-              <span className="admin-stat-icon">
-                #
-              </span>
-
-              <div>
-                <span>Total Laporan</span>
-
-                <strong>
-                  {totalReports}
-                </strong>
-              </div>
-            </div>
-
-            <div className="admin-stat-card waiting">
-              <span className="admin-stat-icon">
-                !
-              </span>
-
-              <div>
-                <span>Menunggu</span>
-
-                <strong>
-                  {waitingReports}
-                </strong>
-              </div>
-            </div>
-
-            <div className="admin-stat-card verified">
-              <span className="admin-stat-icon">
-                ✓
-              </span>
-
-              <div>
-                <span>Diverifikasi</span>
-
-                <strong>
-                  {verifiedReports}
-                </strong>
-              </div>
-            </div>
-
-            <div className="admin-stat-card process">
-              <span className="admin-stat-icon">
-                ↻
-              </span>
-
-              <div>
-                <span>Dalam Proses</span>
-
-                <strong>
-                  {processReports}
-                </strong>
-              </div>
-            </div>
-
-            <div className="admin-stat-card done">
-              <span className="admin-stat-icon">
-                ✓
-              </span>
-
-              <div>
-                <span>Selesai</span>
-
-                <strong>
-                  {completedReports}
-                </strong>
-              </div>
-            </div>
-          </div>
-
-          {/* REPORT MANAGEMENT */}
-
-          <div className="admin-reports-section">
-            <div className="admin-section-header">
-              <div>
-                <span>DATA LAPORAN</span>
-
-                <h2>Kelola Laporan</h2>
-              </div>
-
-              <Link
-                to="/laporan"
-                className="admin-view-public"
-              >
-                Lihat halaman publik
-                <span>→</span>
-              </Link>
-            </div>
-
-            {/* CONTROLS */}
-
-            <div className="admin-controls">
-              <div className="admin-search">
-                <span>⌕</span>
-
-                <input
-                  type="text"
-                  value={search}
-                  onChange={(event) =>
-                    setSearch(
-                      event.target.value,
-                    )
-                  }
-                  placeholder="Cari laporan, lokasi, atau pelapor..."
-                />
-              </div>
-
-              <select
-                className="admin-status-filter"
-                value={statusFilter}
-                onChange={(event) =>
-                  setStatusFilter(
-                    event.target.value,
-                  )
-                }
-              >
-                <option value="Semua">
-                  Semua Status
-                </option>
-
-                {statusOptions.map(
-                  (status) => (
-                    <option
-                      key={status}
-                      value={status}
-                    >
-                      {status}
-                    </option>
-                  ),
-                )}
-              </select>
-            </div>
-
-            {/* REPORT TABLE */}
-
-            {filteredReports.length > 0 ? (
-              <div className="admin-table-wrapper">
-                <table className="admin-table">
-                  <thead>
-                    <tr>
-                      <th>LAPORAN</th>
-
-                      <th>PELAPOR</th>
-
-                      <th>LOKASI</th>
-
-                      <th>STATUS</th>
-
-                      <th>TANGGAL</th>
-
-                      <th>AKSI</th>
-                    </tr>
-                  </thead>
-
-                  <tbody>
-                    {filteredReports.map(
-                      (report) => (
-                        <tr
-                          key={`${report.userEmail || "demo"}-${report.id}`}
-                        >
-                          <td>
-                            <div className="admin-report-title">
-                              <div className="admin-report-mini-icon">
-                                {report.photo ? (
-                                  <img
-                                    src={
-                                      report.photo
-                                    }
-                                    alt=""
-                                  />
-                                ) : (
-                                  "⌁"
-                                )}
-                              </div>
-
-                              <div>
-                                <strong>
-                                  {
-                                    report.title
-                                  }
-                                </strong>
-
-                                <span>
-                                  {
-                                    report.category
-                                  }
-                                </span>
-                              </div>
-                            </div>
-                          </td>
-
-                          <td>
-                            <div className="admin-user-cell">
-                              <strong>
-                                {
-                                  report.username ||
-                                  "Pengguna"
-                                }
-                              </strong>
-
-                              <span>
-                                {
-                                  report.userEmail ||
-                                  "Data publik"
-                                }
-                              </span>
-                            </div>
-                          </td>
-
-                          <td>
-                            <span className="admin-location">
-                              {
-                                report.location
-                              }
-                            </span>
-                          </td>
-
-                          <td>
-                            <span
-                              className={`admin-status-badge ${
-                                report.statusClass ||
-                                getStatusClass(
-                                  report.status,
-                                )
-                              }`}
-                            >
-                              <i></i>
-
-                              {
-                                report.status
-                              }
-                            </span>
-                          </td>
-
-                          <td>
-                            <span className="admin-date">
-                              {report.date}
-                            </span>
-                          </td>
-
-                          <td>
-                            <button
-                              type="button"
-                              className="admin-manage-button"
-                              onClick={() =>
-                                openReportModal(
-                                  report,
-                                )
-                              }
-                            >
-                              Kelola
-                              <span>→</span>
-                            </button>
-                          </td>
-                        </tr>
-                      ),
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            ) : (
-              <div className="admin-empty">
-                <div>⌕</div>
-
-                <h3>
-                  Laporan tidak ditemukan
-                </h3>
-
-                <p>
-                  Coba gunakan kata kunci atau
-                  filter status yang berbeda.
-                </p>
-              </div>
-            )}
+          <div>
+            <h2>LaporKita</h2>
+            <span>Panel Admin</span>
           </div>
         </div>
-      </section>
 
-      {/* REPORT MODAL */}
+        <div className="admin-sidebar-label">MENU UTAMA</div>
 
-      {selectedReport && (
-        <div
-          className="admin-modal-overlay"
-          onClick={closeReportModal}
-        >
-          <div
-            className="admin-report-modal"
-            onClick={(event) =>
-              event.stopPropagation()
-            }
-          >
-            <div className="admin-modal-header">
-              <div>
-                <span>
-                  KELOLA LAPORAN
-                </span>
-
-                <h2>
-                  {selectedReport.title}
-                </h2>
-              </div>
-
-              <button
-                type="button"
-                className="admin-modal-close"
-                onClick={closeReportModal}
-              >
-                ×
-              </button>
-            </div>
-
-            <div className="admin-modal-content">
-              <div className="admin-detail-row">
-                <span>Kategori</span>
-
-                <strong>
-                  {selectedReport.category}
-                </strong>
-              </div>
-
-              <div className="admin-detail-row">
-                <span>Lokasi</span>
-
-                <strong>
-                  {selectedReport.location}
-                </strong>
-              </div>
-
-              <div className="admin-detail-row">
-                <span>Pelapor</span>
-
-                <strong>
-                  {selectedReport.username ||
-                    "Pengguna"}
-                </strong>
-              </div>
-
-              <div className="admin-detail-row">
-                <span>Deskripsi</span>
-
-                <p>
-                  {selectedReport.description ||
-                    "Tidak ada deskripsi."}
-                </p>
-              </div>
-
-              <div className="admin-form-group">
-                <label>
-                  Ubah status laporan
-                </label>
-
-                <select
-                  value={newStatus}
-                  onChange={(event) =>
-                    setNewStatus(
-                      event.target.value,
-                    )
-                  }
-                >
-                  {statusOptions.map(
-                    (status) => (
-                      <option
-                        key={status}
-                        value={status}
-                      >
-                        {status}
-                      </option>
-                    ),
-                  )}
-                </select>
-              </div>
-
-              <div className="admin-form-group">
-                <label>
-                  Catatan petugas
-                </label>
-
-                <textarea
-                  value={adminNote}
-                  onChange={(event) =>
-                    setAdminNote(
-                      event.target.value,
-                    )
-                  }
-                  placeholder="Tambahkan informasi atau tanggapan untuk laporan ini..."
-                  rows="4"
-                />
-              </div>
-            </div>
-
-            <div className="admin-modal-actions">
-              <button
-                type="button"
-                className="admin-cancel-button"
-                onClick={closeReportModal}
-              >
-                Batal
-              </button>
-
-              <button
-                type="button"
-                className="admin-save-button"
-                onClick={updateReportStatus}
-              >
-                Simpan Perubahan
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* LOGOUT MODAL */}
-
-      {showLogoutModal && (
-        <div
-          className="admin-modal-overlay"
+        <button
+          type="button"
+          className="admin-menu-item active"
           onClick={() =>
-            setShowLogoutModal(false)
+            window.scrollTo({
+              top: 0,
+              behavior: "smooth",
+            })
           }
         >
-          <div
-            className="admin-logout-modal"
-            onClick={(event) =>
-              event.stopPropagation()
-            }
-          >
-            <div className="admin-logout-icon">
-              !
-            </div>
+          <LayoutDashboard size={19} />
+          Dashboard
+        </button>
 
-            <h2>
-              Keluar dari admin?
-            </h2>
+        <button
+          type="button"
+          className="admin-menu-item"
+          onClick={() => {
+            setFilterStatus("Semua");
 
-            <p>
-              Kamu akan kembali ke halaman login.
-            </p>
+            document.getElementById("admin-daftar-laporan")?.scrollIntoView({
+              behavior: "smooth",
+              block: "start",
+            });
+          }}
+        >
+          <FileText size={19} />
+          Semua Laporan
+        </button>
 
-            <div className="admin-modal-actions">
-              <button
-                type="button"
-                className="admin-cancel-button"
-                onClick={() =>
-                  setShowLogoutModal(false)
-                }
-              >
-                Batal
-              </button>
+        <div className="admin-sidebar-bottom">
+          <div className="admin-profile">
+            <div className="admin-avatar">A</div>
 
-              <button
-                type="button"
-                className="admin-save-button"
-                onClick={handleAdminLogout}
-              >
-                Ya, Keluar
-              </button>
+            <div>
+              <strong>Administrator</strong>
+              <span>Pengelola Laporan</span>
             </div>
           </div>
+
+          <button
+            type="button"
+            className="admin-logout-button"
+            onClick={logout}
+          >
+            <LogOut size={18} />
+            Keluar
+          </button>
         </div>
-      )}
-    </main>
+      </aside>
+
+      <main className="admin-main">
+        <header className="admin-topbar">
+          <div>
+            <p className="admin-eyebrow">PUSAT KENDALI</p>
+
+            <h1>Dashboard Admin</h1>
+
+            <p className="admin-topbar-description">
+              Pantau dan kelola laporan fasilitas publik.
+            </p>
+          </div>
+
+          <button
+            type="button"
+            className="admin-refresh-button"
+            onClick={fetchLaporan}
+            disabled={loading}
+          >
+            <RefreshCw size={17} className={loading ? "admin-spinning" : ""} />
+
+            <span>Perbarui Data</span>
+          </button>
+        </header>
+
+        {error && (
+          <div className="admin-alert error" role="alert">
+            <AlertCircle size={19} />
+            <span>{error}</span>
+          </div>
+        )}
+
+        {notification && (
+          <div className="admin-alert success" role="status">
+            <CheckCircle size={19} />
+            <span>{notification}</span>
+          </div>
+        )}
+
+        <section className="admin-stat-grid">
+          <div className="admin-stat-card">
+            <div className="admin-stat-icon blue">
+              <FileText size={22} />
+            </div>
+
+            <div>
+              <span>Total Laporan</span>
+              <strong>{loading ? "—" : statistik.total}</strong>
+              <small>Seluruh laporan masuk</small>
+            </div>
+          </div>
+
+          <div className="admin-stat-card">
+            <div className="admin-stat-icon orange">
+              <Clock size={22} />
+            </div>
+
+            <div>
+              <span>Menunggu</span>
+              <strong>{loading ? "—" : statistik.menunggu}</strong>
+              <small>Belum ditindaklanjuti</small>
+            </div>
+          </div>
+
+          <div className="admin-stat-card">
+            <div className="admin-stat-icon purple">
+              <RefreshCw size={22} />
+            </div>
+
+            <div>
+              <span>Diproses</span>
+              <strong>{loading ? "—" : statistik.diproses}</strong>
+              <small>Verifikasi dan penanganan</small>
+            </div>
+          </div>
+
+          <div className="admin-stat-card">
+            <div className="admin-stat-icon green">
+              <CheckCircle size={22} />
+            </div>
+
+            <div>
+              <span>Selesai</span>
+              <strong>{loading ? "—" : statistik.selesai}</strong>
+              <small>Penanganan diselesaikan</small>
+            </div>
+          </div>
+        </section>
+
+        <section className="admin-report-section" id="admin-daftar-laporan">
+          <div className="admin-section-heading">
+            <div>
+              <h2>Daftar Laporan</h2>
+              <p>Tinjau laporan masyarakat dan perbarui statusnya.</p>
+            </div>
+
+            <span className="admin-total-badge">
+              {laporanTersaring.length} laporan
+            </span>
+          </div>
+
+          <div className="admin-report-toolbar">
+            <label className="admin-search">
+              <Search size={19} />
+
+              <input
+                type="search"
+                placeholder="Cari judul, kategori, atau lokasi..."
+                value={search}
+                onChange={(event) => setSearch(event.target.value)}
+              />
+            </label>
+
+            <select
+              className="admin-status-filter"
+              value={filterStatus}
+              onChange={(event) => setFilterStatus(event.target.value)}
+              aria-label="Filter status laporan"
+            >
+              <option value="Semua">Semua Status</option>
+
+              {STATUS_OPTIONS.map((status) => (
+                <option key={status} value={status}>
+                  {status}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {loading ? (
+            <div className="admin-empty-state">
+              <RefreshCw size={28} className="admin-spinning" />
+
+              <h3>Memuat laporan...</h3>
+              <p>Mohon tunggu sebentar.</p>
+            </div>
+          ) : laporanTersaring.length === 0 ? (
+            <div className="admin-empty-state">
+              <FileText size={36} />
+
+              <h3>Belum ada laporan yang cocok</h3>
+              <p>Coba ubah kata kunci atau pilih status lainnya.</p>
+            </div>
+          ) : (
+            <div className="admin-table-wrapper">
+              <table className="admin-report-table">
+                <thead>
+                  <tr>
+                    <th>Laporan</th>
+                    <th>Kategori</th>
+                    <th>Lokasi</th>
+                    <th>Tanggal</th>
+                    <th>Status</th>
+                    <th>Kelola Status</th>
+                    <th>Detail</th>
+                  </tr>
+                </thead>
+
+                <tbody>
+                  {laporanTersaring.map((item) => (
+                    <tr key={item.id}>
+                      <td>
+                        <div className="admin-report-title">
+                          <strong>{item.title || "Tanpa Judul"}</strong>
+
+                          <span>ID laporan #{item.id}</span>
+                        </div>
+                      </td>
+
+                      <td>{item.category_name || "-"}</td>
+
+                      <td>
+                        <div className="admin-location-cell">
+                          <MapPin size={15} />
+
+                          <span>
+                            {[
+                              item.village_name,
+                              item.district_name,
+                              item.regency_name,
+                            ]
+                              .filter(Boolean)
+                              .join(", ") ||
+                              item.address ||
+                              "Lokasi tidak tersedia"}
+                          </span>
+                        </div>
+                      </td>
+
+                      <td>{formatTanggal(item.created_at)}</td>
+
+                      <td>
+                        <span
+                          className={`admin-status-badge ${getStatusClass(
+                            item.status,
+                          )}`}
+                        >
+                          {item.status || "Menunggu"}
+                        </span>
+                      </td>
+
+                      <td>
+                        <select
+                          className="admin-row-status-select"
+                          value={item.status || "Menunggu"}
+                          onChange={(event) =>
+                            ubahStatus(item, event.target.value)
+                          }
+                          disabled={updatingId !== null}
+                          aria-label={`Ubah status laporan ${
+                            item.title || item.id
+                          }`}
+                        >
+                          {STATUS_OPTIONS.map((status) => (
+                            <option key={status} value={status}>
+                              {status}
+                            </option>
+                          ))}
+                        </select>
+
+                        {updatingId === item.id && (
+                          <small className="admin-updating-text">
+                            Menyimpan...
+                          </small>
+                        )}
+                      </td>
+
+                      <td>
+                        <button
+                          type="button"
+                          className="admin-detail-button"
+                          onClick={() => navigate(`/laporan/${item.id}`)}
+                          title="Lihat detail laporan"
+                          aria-label={`Lihat detail ${item.title || item.id}`}
+                        >
+                          <Eye size={17} />
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </section>
+
+        <footer className="admin-footer">
+          LaporKita · Panel Pengelolaan Laporan Publik
+        </footer>
+      </main>
+    </div>
   );
 }
 

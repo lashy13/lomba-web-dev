@@ -1,13 +1,16 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 
 import Navbar from "../components/Navbar";
 import "../styles/notifikasi.css";
 
-function getCurrentUser() {
-  const rawUser = localStorage.getItem("user");
+const API_URL = (
+  import.meta.env.VITE_API_URL || "http://localhost:5000"
+).replace(/\/+$/, "");
 
+function getCurrentUser() {
   try {
+    const rawUser = localStorage.getItem("user");
     return rawUser ? JSON.parse(rawUser) : null;
   } catch {
     return null;
@@ -15,9 +18,8 @@ function getCurrentUser() {
 }
 
 function getNotifications() {
-  const raw = localStorage.getItem("notifikasi");
-
   try {
+    const raw = localStorage.getItem("notifikasi");
     const parsed = raw ? JSON.parse(raw) : [];
 
     return Array.isArray(parsed) ? parsed : [];
@@ -26,10 +28,22 @@ function getNotifications() {
   }
 }
 
-function formatDate(dateString) {
-  if (!dateString) {
-    return "-";
+function getNotificationIcon(type) {
+  switch (type) {
+    case "success":
+    case "verified":
+      return "✓";
+    case "process":
+      return "↻";
+    case "warning":
+      return "!";
+    default:
+      return "!";
   }
+}
+
+function formatDate(dateString) {
+  if (!dateString) return "-";
 
   const date = new Date(dateString);
 
@@ -46,92 +60,137 @@ function formatDate(dateString) {
   });
 }
 
-function getNotificationIcon(type) {
-  switch (type) {
-    case "success":
-      return "✓";
+function normalizeNotification(notification) {
+  const rawRead =
+    notification.is_read ?? notification.isRead ?? notification.read ?? 0;
 
-    case "verified":
-      return "✓";
-
-    case "process":
-      return "↻";
-
-    case "warning":
-      return "!";
-
-    default:
-      return "!";
-  }
+  return {
+    ...notification,
+    id: notification.id,
+    reportId: notification.reportId ?? notification.report_id ?? null,
+    userEmail: notification.userEmail ?? notification.user_email ?? null,
+    createdAt: notification.createdAt ?? notification.created_at ?? null,
+    read: rawRead === true || Number(rawRead) === 1,
+    type: notification.type || "warning",
+    title: notification.title || "Pembaruan laporan",
+    message:
+      notification.message ||
+      notification.note ||
+      "Ada pembaruan pada laporan kamu.",
+    note: notification.note || null,
+  };
 }
 
 function Notifikasi() {
   const navigate = useNavigate();
 
-  const [user, setUser] = useState(() =>
-    getCurrentUser(),
+  const [user, setUser] = useState(getCurrentUser);
+  const [notifications, setNotifications] = useState(() =>
+    getNotifications().map(normalizeNotification),
   );
+  const [loading, setLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
+  const [markingAll, setMarkingAll] = useState(false);
 
-  const [notifications, setNotifications] =
-    useState(() => getNotifications());
+  const loadNotifications = useCallback(async () => {
+    const currentUser = getCurrentUser();
+    const currentToken = localStorage.getItem("token");
 
-  const syncNotifications = () => {
-    setNotifications(getNotifications());
-    setUser(getCurrentUser());
-  };
+    setUser(currentUser);
 
-  useEffect(() => {
-    window.addEventListener(
-      "notificationUpdated",
-      syncNotifications,
-    );
-
-    window.addEventListener(
-      "userUpdated",
-      syncNotifications,
-    );
-
-    window.addEventListener(
-      "storage",
-      syncNotifications,
-    );
-
-    return () => {
-      window.removeEventListener(
-        "notificationUpdated",
-        syncNotifications,
-      );
-
-      window.removeEventListener(
-        "userUpdated",
-        syncNotifications,
-      );
-
-      window.removeEventListener(
-        "storage",
-        syncNotifications,
-      );
-    };
-  }, []);
-
-  const userNotifications = useMemo(() => {
-    if (!user?.email) {
-      return [];
+    if (!currentUser) {
+      setNotifications([]);
+      setLoading(false);
+      return;
     }
 
-    return notifications
-      .filter(
-        (notification) =>
-          notification.userEmail === user.email,
-      )
-      .sort((a, b) => {
-        const dateA = new Date(
-          a.createdAt || 0,
-        ).getTime();
+    setLoading(true);
+    setErrorMessage("");
 
-        const dateB = new Date(
-          b.createdAt || 0,
-        ).getTime();
+    try {
+      if (!currentToken) {
+        setNotifications(getNotifications().map(normalizeNotification));
+        return;
+      }
+
+      const response = await fetch(`${API_URL}/api/notifications`, {
+        headers: {
+          Authorization: `Bearer ${currentToken}`,
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(
+          `Gagal mengambil notifikasi dari server (${response.status}).`,
+        );
+      }
+
+      const result = await response.json();
+      const apiNotifications = Array.isArray(result.data) ? result.data : [];
+
+      const normalized = apiNotifications.map(normalizeNotification);
+
+      setNotifications(normalized);
+
+      // Cache lokal untuk membantu tampilan saat server tidak tersedia.
+      localStorage.setItem("notifikasi", JSON.stringify(normalized));
+    } catch (error) {
+      console.error("Gagal mengambil notifikasi:", error);
+
+      setNotifications(getNotifications().map(normalizeNotification));
+      setErrorMessage(
+        "Notifikasi server belum dapat dimuat. Data lokal ditampilkan jika tersedia.",
+      );
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    const refreshNotifications = () => {
+      window.setTimeout(() => {
+        void loadNotifications();
+      }, 0);
+    };
+
+    refreshNotifications();
+
+    const syncData = () => {
+      setUser(getCurrentUser());
+      refreshNotifications();
+    };
+
+    window.addEventListener("notificationUpdated", syncData);
+    window.addEventListener("userUpdated", syncData);
+    window.addEventListener("storage", syncData);
+    window.addEventListener("focus", syncData);
+
+    return () => {
+      window.removeEventListener("notificationUpdated", syncData);
+      window.removeEventListener("userUpdated", syncData);
+      window.removeEventListener("storage", syncData);
+      window.removeEventListener("focus", syncData);
+    };
+  }, [loadNotifications]);
+
+  const userNotifications = useMemo(() => {
+    if (!user) return [];
+
+    return notifications
+      .filter((notification) => {
+        if (notification.userEmail) {
+          return (
+            notification.userEmail.toLowerCase() ===
+            String(user.email || "").toLowerCase()
+          );
+        }
+
+        // Data dari API sudah difilter berdasarkan pengguna oleh backend.
+        return true;
+      })
+      .sort((a, b) => {
+        const dateA = new Date(a.createdAt || 0).getTime();
+        const dateB = new Date(b.createdAt || 0).getTime();
 
         return dateB - dateA;
       });
@@ -141,70 +200,114 @@ function Notifikasi() {
     (notification) => !notification.read,
   ).length;
 
-  const markAsRead = (notificationId) => {
-    const allNotifications =
-      getNotifications();
-
-    const updatedNotifications =
-      allNotifications.map(
-        (notification) =>
-          notification.id === notificationId
-            ? {
-                ...notification,
-                read: true,
-              }
-            : notification,
-      );
-
-    localStorage.setItem(
-      "notifikasi",
-      JSON.stringify(
-        updatedNotifications,
-      ),
+  const markAsRead = async (notificationId) => {
+    const selectedNotification = userNotifications.find(
+      (notification) => String(notification.id) === String(notificationId),
     );
 
-    setNotifications(
-      updatedNotifications,
-    );
-
-    window.dispatchEvent(
-      new Event("notificationUpdated"),
-    );
-  };
-
-  const markAllAsRead = () => {
-    if (!user?.email) {
+    if (!selectedNotification || selectedNotification.read) {
       return;
     }
 
-    const allNotifications =
-      getNotifications();
-
-    const updatedNotifications =
-      allNotifications.map(
-        (notification) =>
-          notification.userEmail === user.email
-            ? {
-                ...notification,
-                read: true,
-              }
-            : notification,
-      );
-
-    localStorage.setItem(
-      "notifikasi",
-      JSON.stringify(
-        updatedNotifications,
+    // Perbarui tampilan terlebih dahulu agar terasa responsif.
+    setNotifications((previous) =>
+      previous.map((notification) =>
+        String(notification.id) === String(notificationId)
+          ? { ...notification, read: true, is_read: 1 }
+          : notification,
       ),
     );
 
-    setNotifications(
-      updatedNotifications,
+    const localNotifications = getNotifications().map((notification) =>
+      String(notification.id) === String(notificationId)
+        ? { ...notification, read: true, is_read: 1 }
+        : notification,
     );
 
-    window.dispatchEvent(
-      new Event("notificationUpdated"),
-    );
+    localStorage.setItem("notifikasi", JSON.stringify(localNotifications));
+
+    window.dispatchEvent(new Event("notificationUpdated"));
+
+    const currentToken = localStorage.getItem("token");
+
+    if (!currentToken) return;
+
+    try {
+      const response = await fetch(
+        `${API_URL}/api/notifications/${notificationId}/read`,
+        {
+          method: "PATCH",
+          headers: {
+            Authorization: `Bearer ${currentToken}`,
+          },
+        },
+      );
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+    } catch (error) {
+      console.error("Status baca belum tersimpan di server:", error);
+      setErrorMessage(
+        "Status dibaca belum tersimpan di server. Coba muat ulang halaman.",
+      );
+    }
+  };
+
+  const markAllAsRead = async () => {
+    if (!user || unreadCount === 0 || markingAll) return;
+
+    setMarkingAll(true);
+    setErrorMessage("");
+
+    const currentToken = localStorage.getItem("token");
+
+    try {
+      // Simpan ke database terlebih dahulu jika token tersedia.
+      if (currentToken) {
+        const response = await fetch(`${API_URL}/api/notifications/read-all`, {
+          method: "PATCH",
+          headers: {
+            Authorization: `Bearer ${currentToken}`,
+          },
+        });
+
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}`);
+        }
+      }
+
+      // Setelah server berhasil, perbarui tampilan dan cache lokal.
+      setNotifications((previous) =>
+        previous.map((notification) => ({
+          ...notification,
+          read: true,
+          is_read: 1,
+        })),
+      );
+
+      const localNotifications = getNotifications().map((notification) => {
+        const belongsToUser =
+          !notification.userEmail ||
+          notification.userEmail.toLowerCase() ===
+            String(user.email || "").toLowerCase();
+
+        return belongsToUser
+          ? { ...notification, read: true, is_read: 1 }
+          : notification;
+      });
+
+      localStorage.setItem("notifikasi", JSON.stringify(localNotifications));
+
+      window.dispatchEvent(new Event("notificationUpdated"));
+    } catch (error) {
+      console.error("Gagal menandai semua notifikasi:", error);
+      setErrorMessage(
+        "Semua notifikasi belum berhasil ditandai dibaca. Silakan coba lagi.",
+      );
+    } finally {
+      setMarkingAll(false);
+    }
   };
 
   return (
@@ -213,15 +316,9 @@ function Notifikasi() {
 
       <main className="notification-page">
         <div className="notification-bg-orb notification-orb-one" />
-
         <div className="notification-bg-orb notification-orb-two" />
 
         <section className="notification-container">
-
-          {/* ========================================
-              BACK BUTTON
-          ======================================== */}
-
           <button
             type="button"
             className="notification-back-button"
@@ -240,217 +337,141 @@ function Notifikasi() {
                 strokeLinejoin="round"
               />
             </svg>
-
             <span>Kembali</span>
           </button>
 
-
-          {/* ========================================
-              HEADER
-          ======================================== */}
-
           <div className="notification-header">
             <div>
-              <span className="notification-eyebrow">
-                LAPORKITA
-              </span>
-
+              <span className="notification-eyebrow">LAPORKITA</span>
               <h1>Notifikasi</h1>
-
-              <p>
-                Pantau perkembangan laporan kamu
-                langsung dari sini.
-              </p>
+              <p>Pantau perkembangan laporan kamu langsung dari sini.</p>
             </div>
 
-            {unreadCount > 0 && (
+            {user && unreadCount > 0 && (
               <button
                 type="button"
                 className="mark-all-button"
                 onClick={markAllAsRead}
+                disabled={markingAll}
               >
-                Tandai semua dibaca
+                {markingAll ? "Menyimpan..." : "Tandai semua dibaca"}
               </button>
             )}
           </div>
 
-
-          {/* ========================================
-              SUMMARY
-          ======================================== */}
-
           <div className="notification-summary">
             <div className="notification-summary-icon">
-              🔔
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  d="M18 8A6 6 0 0 0 6 8C6 15 3 15 3 17H21C21 15 18 15 18 8Z"
+                  stroke="currentColor"
+                  strokeWidth="1.8"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+                <path
+                  d="M10 21H14"
+                  stroke="currentColor"
+                  strokeWidth="1.8"
+                  strokeLinecap="round"
+                />
+              </svg>
             </div>
 
             <div>
-              <strong>
-                {unreadCount} notifikasi belum
-                dibaca
-              </strong>
-
-              <span>
-                Total {userNotifications.length}{" "}
-                notifikasi
-              </span>
+              <strong>{unreadCount} notifikasi belum dibaca</strong>
+              <span>Total {userNotifications.length} notifikasi</span>
             </div>
           </div>
 
-
-          {/* ========================================
-              NOTIFICATION LIST
-          ======================================== */}
-
           <div className="notification-list">
-
             {!user ? (
-
               <div className="notification-empty">
-
-                <div className="notification-empty-icon">
-                  🔐
-                </div>
-
-                <h2>
-                  Silakan masuk terlebih dahulu
-                </h2>
-
-                <p>
-                  Login untuk melihat notifikasi
-                  perkembangan laporan kamu.
-                </p>
-
-                <Link
-                  to="/login"
-                  className="notification-empty-button"
-                >
+                <div className="notification-empty-icon">🔐</div>
+                <h2>Silakan masuk terlebih dahulu</h2>
+                <p>Login untuk melihat notifikasi perkembangan laporan kamu.</p>
+                <Link to="/login" className="notification-empty-button">
                   Masuk ke LaporKita
                 </Link>
-
               </div>
-
-            ) : userNotifications.length === 0 ? (
-
+            ) : loading ? (
               <div className="notification-empty">
-
-                <div className="notification-empty-icon">
-                  🔔
-                </div>
-
-                <h2>
-                  Belum ada notifikasi
-                </h2>
-
-                <p>
-                  Notifikasi perkembangan laporan
-                  kamu akan muncul di sini.
-                </p>
-
-                <Link
-                  to="/laporan-saya"
-                  className="notification-empty-button"
-                >
+                <h2>Memuat notifikasi...</h2>
+                <p>Tunggu sebentar, ya.</p>
+              </div>
+            ) : userNotifications.length === 0 ? (
+              <div className="notification-empty">
+                <div className="notification-empty-icon">🔔</div>
+                <h2>Belum ada notifikasi</h2>
+                <p>Notifikasi perkembangan laporan kamu akan muncul di sini.</p>
+                <Link to="/laporan-saya" className="notification-empty-button">
                   Lihat Laporan Saya
                 </Link>
-
               </div>
-
             ) : (
+              <>
+                {errorMessage && (
+                  <p role="status" className="notification-error">
+                    {errorMessage}
+                  </p>
+                )}
 
-              userNotifications.map(
-                (notification) => (
-
-                  <div
+                {userNotifications.map((notification) => (
+                  <article
                     key={notification.id}
                     className={`notification-card ${
-                      notification.read
-                        ? "is-read"
-                        : "is-unread"
+                      notification.read ? "is-read" : "is-unread"
                     }`}
-                    onClick={() =>
-                      markAsRead(
-                        notification.id,
-                      )
-                    }
+                    onClick={() => markAsRead(notification.id)}
                   >
-
                     {!notification.read && (
                       <span className="notification-unread-dot" />
                     )}
 
-
                     <div
                       className={`notification-icon notification-icon-${notification.type}`}
                     >
-                      {getNotificationIcon(
-                        notification.type,
-                      )}
+                      {getNotificationIcon(notification.type)}
                     </div>
 
-
                     <div className="notification-content">
-
                       <div className="notification-card-top">
-
-                        <h3>
-                          {notification.title}
-                        </h3>
-
-                        <span>
-                          {formatDate(
-                            notification.createdAt,
-                          )}
-                        </span>
-
+                        <h3>{notification.title}</h3>
+                        <span>{formatDate(notification.createdAt)}</span>
                       </div>
 
-
-                      <p>
-                        {notification.message}
-                      </p>
-
+                      <p>{notification.message}</p>
 
                       {notification.note && (
                         <div className="notification-note">
-
-                          <strong>
-                            Catatan petugas
-                          </strong>
-
-                          <span>
-                            {notification.note}
-                          </span>
-
+                          <strong>Catatan petugas</strong>
+                          <span>{notification.note}</span>
                         </div>
                       )}
-
 
                       {notification.reportId && (
                         <Link
                           to={`/laporan/${notification.reportId}`}
                           className="notification-report-link"
-                          onClick={(event) =>
-                            event.stopPropagation()
-                          }
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            void markAsRead(notification.id);
+                          }}
                         >
                           Lihat laporan →
                         </Link>
                       )}
-
                     </div>
-
-                  </div>
-
-                ),
-              )
-
+                  </article>
+                ))}
+              </>
             )}
-
           </div>
-
         </section>
-
       </main>
     </>
   );

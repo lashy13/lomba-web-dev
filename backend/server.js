@@ -1,0 +1,257 @@
+/* global process, require, module, __dirname */
+
+const express = require("express");
+const cors = require("cors");
+const path = require("path");
+require("dotenv").config();
+
+const db = require("./config/database");
+
+// ========================================
+// IMPORT ROUTES
+// ========================================
+
+const authRoutes = require("./routes/authRoutes");
+const passwordResetRoutes = require("./routes/passwordResetRoutes");
+const categoryRoutes = require("./routes/categoryRoutes");
+const reportRoutes = require("./routes/reportRoutes");
+const notificationRoutes = require("./routes/notificationRoutes");
+
+// ========================================
+// IMPORT MIDDLEWARE
+// ========================================
+
+const { verifyToken } = require("./middleware/authMiddleware");
+
+// ========================================
+// INITIALIZE EXPRESS
+// ========================================
+
+const app = express();
+const PORT = Number(process.env.PORT) || 5000;
+
+// ========================================
+// ALLOWED FRONTEND ORIGINS
+// ========================================
+
+const allowedOrigins = [
+  "http://localhost:5173",
+  "http://127.0.0.1:5173",
+  ...(process.env.FRONTEND_URL || "")
+    .split(",")
+    .map((origin) => origin.trim().replace(/\/+$/, ""))
+    .filter(Boolean),
+];
+
+// ========================================
+// CORS CONFIGURATION
+// ========================================
+
+app.use(
+  cors({
+    origin(origin, callback) {
+      // Allow requests without an Origin header.
+      if (!origin || allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      }
+
+      console.warn("CORS blocked origin:", origin);
+
+      return callback(new Error("Origin tidak diizinkan oleh CORS."));
+    },
+    credentials: true,
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+  })
+);
+
+// ========================================
+// BODY PARSER
+// ========================================
+
+app.use(express.json({ limit: "5mb" }));
+app.use(express.urlencoded({ extended: true }));
+
+// ========================================
+// STATIC FILES
+// ========================================
+
+app.use(
+  "/uploads/profiles",
+  express.static(path.join(__dirname, "uploads", "profiles"))
+);
+
+// ========================================
+// ROOT ENDPOINT
+// ========================================
+
+app.get("/", (req, res) => {
+  return res.status(200).json({
+    success: true,
+    message: "LaporKita API berhasil berjalan.",
+  });
+});
+
+// ========================================
+// SERVER HEALTH CHECK
+// ========================================
+
+app.get("/api/health", (req, res) => {
+  return res.status(200).json({
+    success: true,
+    message: "Server aktif.",
+    timestamp: new Date().toISOString(),
+  });
+});
+
+// ========================================
+// DATABASE HEALTH CHECK
+// ========================================
+
+app.get("/api/test-db", async (req, res) => {
+  try {
+    const [rows] = await db.query("SELECT 1 AS connected");
+
+    return res.status(200).json({
+      success: true,
+      message: "Database berhasil terhubung.",
+      data: rows,
+    });
+  } catch (error) {
+    // Log detailed diagnostics on the server only.
+    console.error("DATABASE ERROR:", {
+      code: error.code,
+      errno: error.errno,
+      sqlState: error.sqlState,
+      message: error.message,
+    });
+
+    return res.status(500).json({
+      success: false,
+      message: "Database gagal terhubung.",
+    });
+  }
+});
+
+// ========================================
+// AUTHENTICATION ROUTES
+// ========================================
+
+app.use("/api/auth", authRoutes);
+
+// ========================================
+// PASSWORD RESET / OTP ROUTES
+// ========================================
+
+app.use("/api/auth/forgot-password", passwordResetRoutes);
+
+// ========================================
+// CURRENT USER
+// ========================================
+
+app.get("/api/auth/me", verifyToken, (req, res) => {
+  return res.status(200).json({
+    success: true,
+    message: "Token valid.",
+    user: req.user,
+  });
+});
+
+// ========================================
+// CATEGORY ROUTES
+// ========================================
+
+app.use("/api/categories", categoryRoutes);
+
+// ========================================
+// REPORT ROUTES
+// ========================================
+
+app.use("/api/reports", reportRoutes);
+
+// ========================================
+// NOTIFICATION ROUTES
+// ========================================
+
+app.use("/api/notifications", notificationRoutes);
+
+// ========================================
+// 404 HANDLER
+// ========================================
+
+app.use((req, res) => {
+  return res.status(404).json({
+    success: false,
+    message: `Endpoint ${req.method} ${req.originalUrl} tidak ditemukan.`,
+  });
+});
+
+// ========================================
+// GLOBAL ERROR HANDLER
+// ========================================
+
+app.use((error, req, res, next) => {
+  if (res.headersSent) {
+    return next(error);
+  }
+
+  console.error("API ERROR:", error.code || "", error.message);
+
+  if (error.message === "Origin tidak diizinkan oleh CORS.") {
+    return res.status(403).json({
+      success: false,
+      message: "Origin tidak diizinkan.",
+    });
+  }
+
+  const status =
+    Number.isInteger(error.status) &&
+    error.status >= 400 &&
+    error.status < 600
+      ? error.status
+      : 500;
+
+  return res.status(status).json({
+    success: false,
+    message:
+      status === 400
+        ? "Format permintaan tidak valid."
+        : "Terjadi kesalahan pada server.",
+  });
+});
+
+// ========================================
+// START SERVER
+// ========================================
+
+const server = app.listen(PORT, "0.0.0.0", () => {
+  console.log("------------------------------------");
+  console.log("LaporKita API berhasil dijalankan.");
+  console.log(`Port: ${PORT}`);
+  console.log(`Allowed origins: ${allowedOrigins.join(", ")}`);
+  console.log("------------------------------------");
+});
+
+// ========================================
+// SERVER ERROR HANDLER
+// ========================================
+
+server.on("error", (error) => {
+  console.error("SERVER ERROR:", error.message);
+
+  if (error.code === "EADDRINUSE") {
+    console.error(
+      `Port ${PORT} sedang digunakan. Periksa proses yang memakai port tersebut.`
+    );
+  }
+});
+
+// ========================================
+// UNEXPECTED ASYNC ERRORS
+// ========================================
+
+process.on("unhandledRejection", (reason) => {
+  console.error("UNHANDLED REJECTION:", reason);
+});
+
+module.exports = app;

@@ -22,3 +22,15 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+
+# File konfigurasi rahasia
+.env
+.env.*
+!.env.example
+
+# Sertifikat database
+certs/
+
+# File unggahan pengguna
+uploads/

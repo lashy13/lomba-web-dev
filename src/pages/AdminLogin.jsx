@@ -1,74 +1,11 @@
+
 import { useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import "../styles/admin-login.css";
 
-import logoLaporkita from "../assets/logo-laporkita.png";
-
-function EyeIcon({ closed = false }) {
-  if (closed) {
-    return (
-      <svg
-        viewBox="0 0 24 24"
-        fill="none"
-        xmlns="http://www.w3.org/2000/svg"
-      >
-        <path
-          d="M3 3L21 21"
-          stroke="currentColor"
-          strokeWidth="2"
-          strokeLinecap="round"
-        />
-
-        <path
-          d="M10.6 10.6C10.2 11 10 11.5 10 12C10 13.1 10.9 14 12 14C12.5 14 13 13.8 13.4 13.4"
-          stroke="currentColor"
-          strokeWidth="2"
-          strokeLinecap="round"
-        />
-
-        <path
-          d="M9.9 5.2C10.6 5 11.3 4.9 12 4.9C16.8 4.9 20.3 8.1 21.5 12C21 13.7 20 15.2 18.7 16.5"
-          stroke="currentColor"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        />
-
-        <path
-          d="M6.1 6.1C4.6 7.3 3.5 9.1 2.5 12C3.7 15.9 7.2 19.1 12 19.1C13.5 19.1 14.9 18.7 16.1 18.1"
-          stroke="currentColor"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        />
-      </svg>
-    );
-  }
-
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      xmlns="http://www.w3.org/2000/svg"
-    >
-      <path
-        d="M2.5 12C3.7 8.1 7.2 4.9 12 4.9C16.8 4.9 20.3 8.1 21.5 12C20.3 15.9 16.8 19.1 12 19.1C7.2 19.1 3.7 15.9 2.5 12Z"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-
-      <circle
-        cx="12"
-        cy="12"
-        r="3"
-        stroke="currentColor"
-        strokeWidth="2"
-      />
-    </svg>
-  );
-}
+const API_URL = (
+  import.meta.env.VITE_API_URL || "http://localhost:5000"
+).replace(/\/+$/, "");
 
 function AdminLogin() {
   const navigate = useNavigate();
@@ -76,273 +13,265 @@ function AdminLogin() {
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-
-  const [showPassword, setShowPassword] =
-    useState(false);
-
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  const handleSubmit = (event) => {
+  const handleSubmit = async (event) => {
     event.preventDefault();
-
     setError("");
 
-    const ADMIN_EMAIL =
-      "admin@laporkita.id";
-
-    const ADMIN_PASSWORD =
-      "admin123";
-
-    if (
-      email.trim().toLowerCase() !==
-        ADMIN_EMAIL ||
-      password !== ADMIN_PASSWORD
-    ) {
-      setError(
-        "Email atau password admin salah."
-      );
-
+    if (!email.trim() || !password) {
+      setError("Email dan password wajib diisi.");
       return;
     }
 
-    localStorage.setItem(
-      "adminLoggedIn",
-      "true"
-    );
+    setLoading(true);
 
-    localStorage.setItem(
-      "adminUser",
-      JSON.stringify({
-        name: "Administrator",
-        email: ADMIN_EMAIL,
-        role: "admin",
-      })
-    );
+    try {
+      const response = await fetch(`${API_URL}/api/auth/login`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email: email.trim().toLowerCase(),
+          password,
+        }),
+      });
 
-    window.dispatchEvent(
-      new Event("adminUpdated")
-    );
+      const data = await response.json().catch(() => ({}));
 
-    const destination =
-      location.state?.from || "/admin";
+      if (!response.ok) {
+        throw new Error(
+          data.message ||
+            data.error ||
+            `Login gagal (HTTP ${response.status}).`,
+        );
+      }
 
-    navigate(destination, {
-      replace: true,
-    });
+      if (data.success === false) {
+        throw new Error(data.message || "Login gagal.");
+      }
+
+      if (!data.token || !data.user) {
+        throw new Error(
+          data.message ||
+            "Respons backend tidak memuat token atau data pengguna.",
+        );
+      }
+
+      if (data.user.role !== "admin") {
+        throw new Error(
+          "Akun ini tidak memiliki akses administrator.",
+        );
+      }
+
+      // Simpan token dan data administrator.
+      localStorage.setItem("token", data.token);
+      localStorage.setItem("adminToken", data.token);
+      localStorage.setItem("adminLoggedIn", "true");
+      localStorage.setItem("adminUser", JSON.stringify(data.user));
+      localStorage.setItem("user", JSON.stringify(data.user));
+
+      window.dispatchEvent(new Event("adminUpdated"));
+
+      const destination = location.state?.from || "/admin";
+
+      navigate(destination, { replace: true });
+    } catch (err) {
+      if (err instanceof TypeError) {
+        setError(
+          `Tidak dapat terhubung ke server di ${API_URL}. Pastikan backend berjalan dan alamat API benar.`,
+        );
+      } else {
+        setError(err.message || "Terjadi kesalahan saat login.");
+      }
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
     <main className="admin-login-page">
-
-      <div className="admin-login-background">
-        <div className="admin-login-orb orb-one"></div>
-        <div className="admin-login-orb orb-two"></div>
-      </div>
-
-
-      <div className="admin-login-card">
-
-        {/* ========================================
-            BRAND
-        ======================================== */}
-
-        <div className="admin-login-brand">
-
-          <div className="admin-login-logo">
-
-            <img
-              src={logoLaporkita}
-              alt="LaporKita"
-            />
-
-          </div>
-
-
-          <div>
-
-            <h1>
-              Lapor<span>Kita</span>
-            </h1>
-
-            <p>
-              Administrator Portal
-            </p>
-
-          </div>
-
-        </div>
-
-
-        {/* ========================================
-            HEADING
-        ======================================== */}
-
-        <div className="admin-login-heading">
-
-          <span>
-            ADMIN ACCESS
-          </span>
-
-          <h2>
-            Selamat datang kembali
-          </h2>
-
-          <p>
-            Masuk untuk mengelola laporan masyarakat.
-          </p>
-
-        </div>
-
-
-        {/* ========================================
-            FORM
-        ======================================== */}
-
-        <form
-          className="admin-login-form"
-          onSubmit={handleSubmit}
-        >
-
-          {/* EMAIL */}
-
-          <div className="admin-input-group">
-
-            <label htmlFor="admin-email">
-              Email Admin
-            </label>
-
-            <input
-              id="admin-email"
-              type="email"
-              placeholder="admin@laporkita.id"
-              value={email}
-              onChange={(event) =>
-                setEmail(event.target.value)
-              }
-              autoComplete="username"
-              required
-            />
-
-          </div>
-
-
-          {/* PASSWORD */}
-
-          <div className="admin-input-group">
-
-            <label htmlFor="admin-password">
-              Password
-            </label>
-
-            <div className="admin-password-wrapper">
-
-              <input
-                id="admin-password"
-                type={
-                  showPassword
-                    ? "text"
-                    : "password"
-                }
-                placeholder="Masukkan password"
-                value={password}
-                onChange={(event) =>
-                  setPassword(
-                    event.target.value
-                  )
-                }
-                autoComplete="current-password"
-                required
+      <div className="admin-login-container">
+        <div className="admin-login-card">
+          <header className="admin-login-header">
+            <div className="admin-login-logo">
+              <img
+                src="/logo-laporkita.png"
+                alt="Logo LaporKita"
+                onError={(event) => {
+                  event.currentTarget.style.display = "none";
+                }}
               />
-
-
-              <button
-                type="button"
-                className="admin-password-toggle"
-                onClick={() =>
-                  setShowPassword(
-                    (prev) => !prev
-                  )
-                }
-                aria-label={
-                  showPassword
-                    ? "Sembunyikan password"
-                    : "Tampilkan password"
-                }
-              >
-
-                <EyeIcon
-                  closed={!showPassword}
-                />
-
-              </button>
-
             </div>
 
-          </div>
-
-
-          {/* ERROR */}
-
-          {error && (
-            <div className="admin-login-error">
-              {error}
-            </div>
-          )}
-
-
-          {/* LOGIN */}
-
-          <button
-            type="submit"
-            className="admin-login-button"
-          >
-
-            Masuk ke Dashboard
-
-            <span>
-              →
+            <span className="admin-login-badge">
+              ADMINISTRATOR
             </span>
 
-          </button>
+            <h1>Login Admin</h1>
 
-        </form>
+            <p>
+              Selamat datang di panel administrator LaporKita.
+              Kelola laporan masyarakat dan pantau perkembangan
+              penanganan fasilitas publik melalui satu tempat.
+            </p>
+          </header>
 
+          <form
+            className="admin-login-form"
+            onSubmit={handleSubmit}
+          >
+            <div className="admin-form-group">
+              <label htmlFor="admin-email">
+                Email Administrator
+              </label>
 
-        {/* ========================================
-            BACK
-        ======================================== */}
+              <input
+                id="admin-email"
+                type="email"
+                placeholder="Masukkan email admin"
+                value={email}
+                onChange={(event) => setEmail(event.target.value)}
+                autoComplete="username"
+                required
+                disabled={loading}
+              />
+            </div>
 
-        <button
-          type="button"
-          className="admin-back-button"
-          onClick={() => navigate("/")}
-        >
-          ← Kembali ke LaporKita
-        </button>
+            <div className="admin-form-group">
+              <label htmlFor="admin-password">Password</label>
 
+              <div className="admin-password-wrapper">
+                <input
+                  id="admin-password"
+                  type={showPassword ? "text" : "password"}
+                  placeholder="Masukkan password"
+                  value={password}
+                  onChange={(event) => setPassword(event.target.value)}
+                  autoComplete="current-password"
+                  required
+                  disabled={loading}
+                />
 
-        {/* ========================================
-            DEMO
-        ======================================== */}
+                <button
+                  type="button"
+                  className="admin-toggle-password"
+                  onClick={() =>
+                    setShowPassword((previous) => !previous)
+                  }
+                  aria-label={
+                    showPassword
+                      ? "Sembunyikan password"
+                      : "Tampilkan password"
+                  }
+                  disabled={loading}
+                >
+                  {showPassword ? (
+                    <svg
+                      viewBox="0 0 24 24"
+                      width="20"
+                      height="20"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="1.8"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      aria-hidden="true"
+                    >
+                      <path d="M3 3l18 18" />
+                      <path d="M10.6 10.6a2 2 0 002.8 2.8" />
+                      <path d="M9.9 5.2A10.8 10.8 0 0112 5c5 0 8.5 5 9 7-.2 1-1.1 2.5-2.6 3.8" />
+                      <path d="M6.2 6.2C3.9 7.7 2.4 10 2 12c.5 2 4 7 10 7 1.1 0 2.1-.2 3-.5" />
+                    </svg>
+                  ) : (
+                    <svg
+                      viewBox="0 0 24 24"
+                      width="20"
+                      height="20"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="1.8"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      aria-hidden="true"
+                    >
+                      <path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z" />
+                      <circle cx="12" cy="12" r="3" />
+                    </svg>
+                  )}
+                </button>
+              </div>
+            </div>
 
-        <div className="admin-login-demo">
+            {error && (
+              <div className="admin-login-error" role="alert">
+                {error}
+              </div>
+            )}
 
-          <span>
-            Demo Admin
-          </span>
+            <button
+              type="submit"
+              className="admin-login-button"
+              disabled={loading}
+            >
+              {loading ? "Memverifikasi..." : "Masuk ke Dashboard"}
+            </button>
+          </form>
 
-          <small>
-            admin@laporkita.id
-          </small>
+          <section
+            className="admin-demo-info"
+            aria-labelledby="admin-demo-title"
+          >
+            <div className="admin-demo-icon">
+              <svg
+                width="22"
+                height="22"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.8"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden="true"
+              >
+                <circle cx="12" cy="12" r="10" />
+                <path d="M12 11v5" />
+                <path d="M12 7h.01" />
+              </svg>
+            </div>
 
-          <small>
-            Password: admin123
-          </small>
+            <div className="admin-demo-content">
+              <h2 id="admin-demo-title">Akses Demo untuk Juri</h2>
 
+              <p>
+                Halaman ini disediakan untuk demonstrasi fitur
+                administrator LaporKita dalam proses penilaian lomba.
+              </p>
+
+              <div className="admin-demo-note">
+                Informasi akun demo akan tersedia setelah website
+                dipublikasikan.
+              </div>
+            </div>
+          </section>
+
+          <footer className="admin-login-footer">
+            <button
+              type="button"
+              className="admin-back-button"
+              onClick={() => navigate("/")}
+              disabled={loading}
+            >
+              ← Kembali ke Beranda
+            </button>
+
+            <p>LaporKita · Panel Administrator</p>
+          </footer>
         </div>
-
       </div>
-
     </main>
   );
 }

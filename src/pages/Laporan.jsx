@@ -1,206 +1,40 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 
 import Navbar from "../components/Navbar";
 import "../styles/laporan.css";
 
-const laporanData = [
-  {
-    id: 1,
-    title: "Jalan Rusak di Karangsoka",
-    category: "Infrastruktur",
-    location: "Karangsoka, Purwokerto",
-    date: "1 Oktober 2026",
-    status: "Dalam Proses",
-    statusClass: "process",
-    description:
-      "Terdapat beberapa bagian jalan yang mengalami kerusakan dan cukup mengganggu pengguna jalan.",
-    icon: "⌁",
-  },
-  {
-    id: 2,
-    title: "Lampu Penerangan Jalan Mati",
-    category: "Penerangan jalan",
-    location: "Purwokerto Selatan",
-    date: "30 September 2026",
-    status: "Diverifikasi",
-    statusClass: "verified",
-    description:
-      "Lampu penerangan jalan tidak menyala pada malam hari sehingga kondisi jalan menjadi kurang terang.",
-    icon: "◉",
-  },
-  {
-    id: 3,
-    title: "Saluran Air Tersumbat",
-    category: "Lingkungan",
-    location: "Banyumas, Jawa Tengah",
-    date: "29 September 2026",
-    status: "Selesai",
-    statusClass: "done",
-    description:
-      "Saluran air di sekitar permukiman mengalami penyumbatan dan menyebabkan aliran air tidak lancar.",
-    icon: "≈",
-  },
-  {
-    id: 4,
-    title: "Fasilitas Taman Rusak",
-    category: "Fasilitas Umum",
-    location: "Purwokerto Timur",
-    date: "28 September 2026",
-    status: "Menunggu",
-    statusClass: "waiting",
-    description:
-      "Beberapa fasilitas yang terdapat di taman umum mengalami kerusakan dan perlu diperbaiki.",
-    icon: "✦",
-  },
-  {
-    id: 5,
-    title: "Sampah Menumpuk di Area Publik",
-    category: "Lingkungan",
-    location: "Purwokerto Barat",
-    date: "27 September 2026",
-    status: "Dalam Proses",
-    statusClass: "process",
-    description:
-      "Terdapat tumpukan sampah di area publik yang belum tertangani dengan baik.",
-    icon: "⌁",
-  },
-  {
-    id: 6,
-    title: "Rambu Lalu Lintas Rusak",
-    category: "Infrastruktur",
-    location: "Banyumas",
-    date: "26 September 2026",
-    status: "Diverifikasi",
-    statusClass: "verified",
-    description:
-      "Salah satu rambu lalu lintas mengalami kerusakan sehingga informasi bagi pengguna jalan menjadi kurang jelas.",
-    icon: "!",
-  },
-];
+const API_URL =
+  import.meta.env.VITE_API_URL || "http://localhost:5000";
 
 const categoryFilters = [
-  {
-    value: "Semua",
-    label: "Semua",
-  },
-  {
-    value: "Infrastruktur",
-    label: "Infrastruktur",
-  },
-  {
-    value: "Fasilitas Umum",
-    label: "Fasilitas Umum",
-  },
-  {
-    value: "Lingkungan",
-    label: "Lingkungan",
-  },
-  {
-    value: "Penerangan jalan",
-    label: "Penerangan",
-  },
-  {
-    value: "Drainase dan saluran air",
-    label: "Drainase",
-  },
-  {
-    value: "Lainnya",
-    label: "Lainnya",
-  },
+  { value: "Semua", label: "Semua" },
+  { value: "Jalan Rusak", label: "Jalan Rusak" },
+  { value: "Fasilitas Umum", label: "Fasilitas Umum" },
+  { value: "Kebersihan", label: "Kebersihan" },
+  { value: "Penerangan Jalan", label: "Penerangan" },
+  { value: "Lingkungan", label: "Lingkungan" },
+  { value: "Transportasi", label: "Transportasi" },
+  { value: "Keamanan", label: "Keamanan" },
+  { value: "Lainnya", label: "Lainnya" },
 ];
 
 const statusFilters = [
-  {
-    value: "Semua",
-    label: "Semua status",
-  },
-  {
-    value: "Menunggu",
-    label: "Menunggu",
-  },
-  {
-    value: "Diverifikasi",
-    label: "Diverifikasi",
-  },
-  {
-    value: "Dalam Proses",
-    label: "Dalam Proses",
-  },
-  {
-    value: "Selesai",
-    label: "Selesai",
-  },
+  { value: "Semua", label: "Semua status" },
+  { value: "Menunggu", label: "Menunggu" },
+  { value: "Diverifikasi", label: "Diverifikasi" },
+  { value: "Dalam Proses", label: "Dalam Proses" },
+  { value: "Selesai", label: "Selesai" },
 ];
-
-function getStoredReports() {
-  try {
-    const rawReports = localStorage.getItem("laporanSaya");
-
-    if (!rawReports) {
-      return [];
-    }
-
-    const parsedReports = JSON.parse(rawReports);
-
-    return Array.isArray(parsedReports) ? parsedReports : [];
-  } catch {
-    return [];
-  }
-}
-
-function normalizeUserReport(report) {
-  return {
-    ...report,
-
-    category: report.categoryLabel || report.category || "Lainnya",
-
-    categoryOriginal: report.category || "",
-
-    location:
-      report.location ||
-      report.lokasi?.alamat ||
-      [
-        report.lokasi?.desa,
-        report.lokasi?.kecamatan,
-        report.lokasi?.kabupaten,
-        report.lokasi?.provinsi,
-      ]
-        .filter(Boolean)
-        .join(", ") ||
-      "Lokasi belum tersedia",
-
-    date:
-      report.date ||
-      (report.createdAt
-        ? new Date(report.createdAt).toLocaleDateString("id-ID", {
-            day: "numeric",
-            month: "long",
-            year: "numeric",
-          })
-        : "-"),
-
-    status: report.status || "Menunggu",
-
-    statusClass: report.statusClass || getStatusClass(report.status),
-
-    description: report.description || "Tidak ada deskripsi laporan.",
-
-    icon: getCategoryIcon(report.category),
-  };
-}
 
 function getStatusClass(status) {
   switch (status) {
     case "Selesai":
       return "done";
-
     case "Dalam Proses":
       return "process";
-
     case "Diverifikasi":
       return "verified";
-
     case "Menunggu":
     default:
       return "waiting";
@@ -208,64 +42,90 @@ function getStatusClass(status) {
 }
 
 function getCategoryIcon(category) {
-  switch (category) {
-    case "jalan":
-      return "⌁";
+  const value = String(category || "").toLowerCase();
 
-    case "fasilitas":
-      return "✦";
+  if (value.includes("jalan")) return "⌁";
+  if (value.includes("fasilitas")) return "✦";
+  if (value.includes("penerangan")) return "◉";
 
-    case "penerangan":
-      return "◉";
-
-    case "lingkungan":
-      return "≈";
-
-    case "drainase":
-      return "⌁";
-
-    default:
-      return "!";
+  if (value.includes("lingkungan") || value.includes("kebersihan")) {
+    return "≈";
   }
+
+  if (value.includes("drainase") || value.includes("saluran")) {
+    return "⌁";
+  }
+
+  return "!";
+}
+
+function formatDate(value) {
+  if (!value) return "-";
+
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) return "-";
+
+  return date.toLocaleDateString("id-ID", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
+}
+
+function normalizeReport(report) {
+  const category = report.category_name || "Lainnya";
+
+  const locationParts = [
+    report.village_name,
+    report.district_name,
+    report.regency_name,
+    report.province_name,
+  ].filter(Boolean);
+
+  const uniqueLocationParts = locationParts.filter(
+    (value, index, array) =>
+      array.findIndex(
+        (item) =>
+          String(item).toLowerCase() === String(value).toLowerCase(),
+      ) === index,
+  );
+
+  return {
+    ...report,
+    id: report.id,
+    title: report.title || "Laporan tanpa judul",
+    category,
+    location: uniqueLocationParts.join(", ") || "Lokasi belum tersedia",
+    date: formatDate(report.created_at),
+    status: report.status || "Menunggu",
+    statusClass: getStatusClass(report.status),
+    description: report.description || "Tidak ada deskripsi laporan.",
+    icon: getCategoryIcon(category),
+  };
 }
 
 function matchesCategory(report, selectedCategory) {
-  if (selectedCategory === "Semua") {
-    return true;
-  }
+  if (selectedCategory === "Semua") return true;
 
   const category = String(report.category || "").toLowerCase();
-
-  const originalCategory = String(report.categoryOriginal || "").toLowerCase();
-
   const target = selectedCategory.toLowerCase();
 
-  if (category === target) {
-    return true;
-  }
+  if (category === target) return true;
 
-  if (originalCategory === target) {
-    return true;
-  }
-
-  const categoryMap = {
-    infrastruktur: ["jalan", "jalan dan transportasi", "infrastruktur"],
-
-    "fasilitas umum": ["fasilitas", "fasilitas umum"],
-
-    "penerangan jalan": ["penerangan", "penerangan jalan"],
-
-    lingkungan: ["lingkungan", "sampah"],
-
-    "drainase dan saluran air": ["drainase", "drainase dan saluran air"],
-
+  const aliases = {
+    "jalan rusak": ["jalan", "infrastruktur"],
+    "fasilitas umum": ["fasilitas"],
+    kebersihan: ["sampah", "kebersihan"],
+    "penerangan jalan": ["penerangan"],
+    lingkungan: ["lingkungan"],
+    transportasi: ["transportasi", "lalu lintas"],
+    keamanan: ["keamanan"],
     lainnya: ["lainnya"],
   };
 
-  const aliases = categoryMap[target] || [];
-
-  return aliases.some(
-    (alias) => category.includes(alias) || originalCategory.includes(alias),
+  return (aliases[target] || []).some((alias) =>
+    category.includes(alias),
   );
 }
 
@@ -273,87 +133,154 @@ function Laporan() {
   const [searchParams, setSearchParams] = useSearchParams();
 
   const [reports, setReports] = useState([]);
-
   const [search, setSearch] = useState("");
+  const [selectedStatus, setSelectedStatus] = useState("Semua");
+  const [showFilters, setShowFilters] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
   const selectedCategory = searchParams.get("category") || "Semua";
 
-  const [selectedStatus, setSelectedStatus] = useState("Semua");
-
-  const [showFilters, setShowFilters] = useState(false);
-
   const isLoggedIn = localStorage.getItem("isLoggedIn") === "true";
-
   const reportPath = isLoggedIn ? "/buat-laporan" : "/login";
 
-  useEffect(() => {
-    const loadReports = () => {
-      const storedReports = getStoredReports();
+  // Mengambil laporan dari backend.
+  // Fungsi ini hanya mengubah state ketika permintaan API selesai.
+  const loadReports = useCallback(async (signal) => {
+    try {
+      const response = await fetch(`${API_URL}/api/reports`, {
+        method: "GET",
+        headers: {
+          Accept: "application/json",
+        },
+        signal,
+      });
 
-      const normalizedReports = storedReports.map(normalizeUserReport);
+      const result = await response.json();
 
-      setReports([...laporanData, ...normalizedReports]);
-    };
+      if (!response.ok || !result.success) {
+        throw new Error(
+          result.message || "Gagal mengambil data laporan.",
+        );
+      }
 
-    loadReports();
+      const apiReports = Array.isArray(result.data) ? result.data : [];
 
-    window.addEventListener("laporanUpdated", loadReports);
+      setReports(apiReports.map(normalizeReport));
+      setError("");
+    } catch (err) {
+      if (err.name === "AbortError") return;
 
-    window.addEventListener("storage", loadReports);
-
-    return () => {
-      window.removeEventListener("laporanUpdated", loadReports);
-
-      window.removeEventListener("storage", loadReports);
-    };
+      console.error("LOAD REPORTS ERROR:", err);
+      setError(
+        "Data laporan belum dapat dimuat. Periksa koneksi backend, lalu coba lagi.",
+      );
+    } finally {
+      if (!signal?.aborted) {
+        setLoading(false);
+      }
+    }
   }, []);
 
+  // Effect digunakan untuk menyinkronkan halaman dengan API dan event browser.
+  useEffect(() => {
+    const controller = new AbortController();
+
+    // Jalankan permintaan awal setelah effect dijadwalkan.
+    const timerId = window.setTimeout(() => {
+      loadReports(controller.signal);
+    }, 0);
+
+    // Muat ulang ketika ada komponen lain yang mengirim event ini.
+    const handleReportUpdated = () => {
+      loadReports();
+    };
+
+    window.addEventListener("laporanUpdated", handleReportUpdated);
+
+    return () => {
+      window.clearTimeout(timerId);
+      controller.abort();
+
+      window.removeEventListener(
+        "laporanUpdated",
+        handleReportUpdated,
+      );
+    };
+  }, [loadReports]);
+
   const handleCategoryChange = (category) => {
-    const nextSearchParams = new URLSearchParams(searchParams);
+    const nextParams = new URLSearchParams(searchParams);
 
     if (category === "Semua") {
-      nextSearchParams.delete("category");
+      nextParams.delete("category");
     } else {
-      nextSearchParams.set("category", category);
+      nextParams.set("category", category);
     }
 
-    setSearchParams(nextSearchParams);
+    setSearchParams(nextParams);
   };
 
   const filteredReports = useMemo(() => {
     const keyword = search.trim().toLowerCase();
 
     return reports.filter((report) => {
+      const searchableValues = [
+        report.title,
+        report.description,
+        report.location,
+        report.category,
+      ];
+
       const matchesSearch =
         !keyword ||
-        [report.title, report.description, report.location, report.category]
-          .filter(Boolean)
-          .some((value) => String(value).toLowerCase().includes(keyword));
+        searchableValues.some((value) =>
+          String(value || "").toLowerCase().includes(keyword),
+        );
 
-      const matchesSelectedCategory = matchesCategory(report, selectedCategory);
+      const matchesSelectedCategory = matchesCategory(
+        report,
+        selectedCategory,
+      );
 
       const matchesSelectedStatus =
-        selectedStatus === "Semua" || report.status === selectedStatus;
+        selectedStatus === "Semua" ||
+        report.status === selectedStatus;
 
-      return matchesSearch && matchesSelectedCategory && matchesSelectedStatus;
+      return (
+        matchesSearch &&
+        matchesSelectedCategory &&
+        matchesSelectedStatus
+      );
     });
   }, [reports, search, selectedCategory, selectedStatus]);
 
   const totalLaporan = reports.length;
 
   const dalamProses = reports.filter(
-    (item) => item.status === "Dalam Proses" || item.status === "Diverifikasi",
+    (report) =>
+      report.status === "Dalam Proses" ||
+      report.status === "Diverifikasi",
   ).length;
 
-  const selesai = reports.filter((item) => item.status === "Selesai").length;
+  const selesai = reports.filter(
+    (report) => report.status === "Selesai",
+  ).length;
 
   const resetFilter = () => {
     setSearch("");
     setSelectedStatus("Semua");
 
-    const nextSearchParams = new URLSearchParams(searchParams);
-    nextSearchParams.delete("category");
-    setSearchParams(nextSearchParams);
+    const nextParams = new URLSearchParams(searchParams);
+    nextParams.delete("category");
+
+    setSearchParams(nextParams);
+  };
+
+  const retryLoadReports = () => {
+    setLoading(true);
+    setError("");
+    loadReports();
   };
 
   return (
@@ -361,29 +288,21 @@ function Laporan() {
       <Navbar />
 
       {/* BACKGROUND */}
-
       <div className="laporan-background">
         <div className="laporan-orb laporan-orb-one"></div>
-
         <div className="laporan-orb laporan-orb-two"></div>
-
         <div className="laporan-grid"></div>
       </div>
-
-      {/* MAIN */}
 
       <section className="laporan-main">
         <div className="laporan-container">
           {/* BACK */}
-
           <Link to="/" className="laporan-back-button">
             <span className="laporan-back-icon">←</span>
-
             <span>Kembali</span>
           </Link>
 
           {/* INTRO */}
-
           <div className="laporan-intro">
             <div className="laporan-label">
               <span></span>
@@ -397,13 +316,12 @@ function Laporan() {
 
             <p>
               Temukan berbagai laporan yang telah disampaikan masyarakat
-              mengenai permasalahan di lingkungan sekitar. Setiap laporan dapat
-              dipantau berdasarkan status penanganannya.
+              mengenai permasalahan di lingkungan sekitar. Setiap laporan
+              dapat dipantau berdasarkan status penanganannya.
             </p>
           </div>
 
           {/* CONTROLS */}
-
           <div className="laporan-controls">
             <div className="laporan-search">
               <span className="search-icon">⌕</span>
@@ -443,15 +361,17 @@ function Laporan() {
           </div>
 
           {/* FILTER PANEL */}
-
           {showFilters && (
             <div className="laporan-filter-panel">
               <div className="laporan-filter-panel-group">
-                <label>Status laporan</label>
+                <label htmlFor="status-filter">Status laporan</label>
 
                 <select
+                  id="status-filter"
                   value={selectedStatus}
-                  onChange={(event) => setSelectedStatus(event.target.value)}
+                  onChange={(event) =>
+                    setSelectedStatus(event.target.value)
+                  }
                 >
                   {statusFilters.map((status) => (
                     <option key={status.value} value={status.value}>
@@ -472,7 +392,6 @@ function Laporan() {
           )}
 
           {/* CATEGORY */}
-
           <div className="laporan-filter-row">
             {categoryFilters.map((category) => (
               <button
@@ -489,136 +408,144 @@ function Laporan() {
           </div>
 
           {/* SUMMARY */}
-
           <div className="laporan-summary">
             <div>
               <strong>{totalLaporan}</strong>
-
               <span>Total laporan</span>
             </div>
 
             <div>
               <strong>{dalamProses}</strong>
-
               <span>Dalam proses</span>
             </div>
 
             <div>
               <strong>{selesai}</strong>
-
               <span>Selesai</span>
             </div>
           </div>
 
           {/* RESULT INFO */}
+          {!loading &&
+            !error &&
+            (search ||
+              selectedCategory !== "Semua" ||
+              selectedStatus !== "Semua") && (
+              <div className="laporan-result-info">
+                Menampilkan <strong>{filteredReports.length}</strong> dari{" "}
+                <strong>{reports.length}</strong> laporan
+              </div>
+            )}
 
-          {(search ||
-            selectedCategory !== "Semua" ||
-            selectedStatus !== "Semua") && (
-            <div className="laporan-result-info">
-              Menampilkan <strong>{filteredReports.length}</strong> dari{" "}
-              <strong>{reports.length}</strong> laporan
+          {/* LOADING */}
+          {loading && (
+            <div className="laporan-empty">
+              <h2>Memuat laporan...</h2>
+              <p>Sedang mengambil data laporan dari server.</p>
+            </div>
+          )}
+
+          {/* ERROR */}
+          {!loading && error && (
+            <div className="laporan-empty">
+              <h2>Gagal memuat laporan</h2>
+              <p>{error}</p>
+
+              <button type="button" onClick={retryLoadReports}>
+                Coba lagi
+              </button>
             </div>
           )}
 
           {/* REPORT LIST */}
+          {!loading &&
+            !error &&
+            (filteredReports.length > 0 ? (
+              <div className="laporan-list">
+                {filteredReports.map((laporan) => (
+                  <Link
+                    to={`/laporan/${laporan.id}`}
+                    className="laporan-card"
+                    key={laporan.id}
+                  >
+                    <div className="laporan-card-visual">
+                      {laporan.photo ? (
+                        <img
+                          src={laporan.photo}
+                          alt={laporan.title}
+                          className="laporan-card-image"
+                        />
+                      ) : (
+                        <div className="dummy-report-image">
+                          <div className="dummy-image-glow"></div>
 
-          {filteredReports.length > 0 ? (
-            <div className="laporan-list">
-              {filteredReports.map((laporan) => (
-                <Link
-                  to={`/laporan/${laporan.id}`}
-                  className="laporan-card"
-                  key={`${laporan.userEmail || "public"}-${laporan.id}`}
-                >
-                  {/* VISUAL */}
+                          <div className="dummy-image-icon">
+                            {laporan.icon}
+                          </div>
 
-                  <div className="laporan-card-visual">
-                    {laporan.photo ? (
-                      <img
-                        src={laporan.photo}
-                        alt={laporan.title}
-                        className="laporan-card-image"
-                      />
-                    ) : (
-                      <div className="dummy-report-image">
-                        <div className="dummy-image-glow"></div>
+                          <span>Foto laporan</span>
+                        </div>
+                      )}
+                    </div>
 
-                        <div className="dummy-image-icon">{laporan.icon}</div>
+                    <div className="laporan-card-content">
+                      <div className="laporan-card-top">
+                        <span className="laporan-category">
+                          {laporan.category}
+                        </span>
 
-                        <span>Foto laporan</span>
+                        <span
+                          className={`laporan-status ${laporan.statusClass}`}
+                        >
+                          <i></i>
+                          {laporan.status}
+                        </span>
                       </div>
-                    )}
-                  </div>
 
-                  {/* CONTENT */}
+                      <h2>{laporan.title}</h2>
+                      <p>{laporan.description}</p>
 
-                  <div className="laporan-card-content">
-                    <div className="laporan-card-top">
-                      <span className="laporan-category">
-                        {laporan.category}
-                      </span>
+                      <div className="laporan-card-meta">
+                        <span>
+                          <b>⌖</b>
+                          {laporan.location}
+                        </span>
 
-                      <span
-                        className={`laporan-status ${
-                          laporan.statusClass || getStatusClass(laporan.status)
-                        }`}
-                      >
-                        <i></i>
-
-                        {laporan.status}
-                      </span>
+                        <span>
+                          <b>◷</b>
+                          {laporan.date}
+                        </span>
+                      </div>
                     </div>
 
-                    <h2>{laporan.title}</h2>
+                    <div className="laporan-card-arrow">→</div>
+                  </Link>
+                ))}
+              </div>
+            ) : (
+              <div className="laporan-empty">
+                <div className="laporan-empty-icon">⌕</div>
 
-                    <p>{laporan.description}</p>
+                <h2>Laporan tidak ditemukan</h2>
 
-                    <div className="laporan-card-meta">
-                      <span>
-                        <b>⌖</b>
+                <p>
+                  {reports.length === 0
+                    ? "Belum ada laporan yang tersimpan di database."
+                    : "Tidak ada laporan yang sesuai dengan pencarian atau filter yang kamu pilih."}
+                </p>
 
-                        {laporan.location}
-                      </span>
-
-                      <span>
-                        <b>◷</b>
-
-                        {laporan.date}
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* ARROW */}
-
-                  <div className="laporan-card-arrow">→</div>
-                </Link>
-              ))}
-            </div>
-          ) : (
-            <div className="laporan-empty">
-              <div className="laporan-empty-icon">⌕</div>
-
-              <h2>Laporan tidak ditemukan</h2>
-
-              <p>
-                Tidak ada laporan yang sesuai dengan pencarian atau filter yang
-                kamu pilih.
-              </p>
-
-              <button type="button" onClick={resetFilter}>
-                Reset pencarian
-              </button>
-            </div>
-          )}
+                <button type="button" onClick={resetFilter}>
+                  Reset pencarian
+                </button>
+              </div>
+            ))}
         </div>
       </section>
 
       {/* FOOTER */}
-
       <footer className="laporan-footer">
-        Laporkita · Bersama menyampaikan informasi untuk lingkungan yang lebih
-        baik.
+        Laporkita · Bersama menyampaikan informasi untuk lingkungan yang
+        lebih baik.
       </footer>
     </main>
   );

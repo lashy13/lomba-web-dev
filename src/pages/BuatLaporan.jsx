@@ -1,36 +1,60 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 import "../styles/buat-laporan.css";
 
 const API_WILAYAH = "https://www.emsifa.com/api-wilayah-indonesia/api";
 
-const kategoriLabel = {
-  jalan: "Jalan dan transportasi",
-  fasilitas: "Fasilitas umum",
-  penerangan: "Penerangan jalan",
-  lingkungan: "Lingkungan",
-  drainase: "Drainase dan saluran air",
-  lainnya: "Lainnya",
+const API_URL = (
+  import.meta.env.VITE_API_URL || "http://localhost:5000"
+).replace(/\/+$/, "");
+
+const kategoriId = {
+  jalan: 1,
+  fasilitas: 2,
+  drainase: 3,
+  penerangan: 4,
+  lingkungan: 5,
+  transportasi: 6,
+  keamanan: 7,
+  lainnya: 8,
 };
 
-const sortWilayah = (data) => {
-  return [...data].sort((a, b) =>
+const sortWilayah = (data) =>
+  [...data].sort((a, b) =>
     a.name.localeCompare(b.name, "id", {
       sensitivity: "base",
     }),
   );
-};
 
 const normalizeName = (value) =>
   String(value || "")
     .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
     .replace(/^kabupaten\s+/i, "")
     .replace(/^kab\.\s+/i, "")
     .replace(/^kota\s+/i, "")
     .replace(/^kec\.\s+/i, "")
     .replace(/[^a-z0-9]/g, "");
 
+async function fetchJSON(url, options = {}) {
+  const response = await fetch(url, options);
+
+  const result = await response.json().catch(() => null);
+
+  if (!response.ok) {
+    throw new Error(
+      result?.message || `Permintaan gagal dengan status ${response.status}.`,
+    );
+  }
+
+  return result;
+}
+
 function BuatLaporan() {
+  const navigate = useNavigate();
+
   const [provinces, setProvinces] = useState([]);
   const [regencies, setRegencies] = useState([]);
   const [districts, setDistricts] = useState([]);
@@ -45,182 +69,206 @@ function BuatLaporan() {
   const [locationFound, setLocationFound] = useState(false);
   const [locationError, setLocationError] = useState("");
 
+  const [submitting, setSubmitting] = useState(false);
+
   const [locationData, setLocationData] = useState({
     provinceId: "",
     regencyId: "",
     districtId: "",
     villageId: "",
-
     provinsi: "",
     kabupaten: "",
     kecamatan: "",
     desa: "",
-
     alamat: "",
     latitude: "",
     longitude: "",
   });
 
   const [detailLokasi, setDetailLokasi] = useState("");
-
   const [selectedPhoto, setSelectedPhoto] = useState(null);
   const [photoPreview, setPhotoPreview] = useState("");
+  const [photoError, setPhotoError] = useState("");
 
-  /* ========================================
-     AMBIL PROVINSI
-  ======================================== */
+  // ========================================
+  // AMBIL PROVINSI
+  // ========================================
 
   useEffect(() => {
-    const getProvinces = async () => {
+    const controller = new AbortController();
+
+    async function loadProvinces() {
       setLoadingProvince(true);
 
       try {
-        const response = await fetch(`${API_WILAYAH}/provinces.json`);
+        const data = await fetchJSON(`${API_WILAYAH}/provinces.json`, {
+          signal: controller.signal,
+        });
 
-        if (!response.ok) {
-          throw new Error("Gagal mengambil provinsi");
+        if (!Array.isArray(data)) {
+          throw new Error("Format data provinsi tidak valid.");
         }
-
-        const data = await response.json();
 
         setProvinces(sortWilayah(data));
       } catch (error) {
-        console.error(error);
+        if (error.name !== "AbortError") {
+          console.error("PROVINCE ERROR:", error);
+          setProvinces([]);
+        }
       } finally {
-        setLoadingProvince(false);
+        if (!controller.signal.aborted) {
+          setLoadingProvince(false);
+        }
       }
-    };
+    }
 
-    getProvinces();
+    loadProvinces();
+
+    return () => controller.abort();
   }, []);
 
-  /* ========================================
-     AMBIL KABUPATEN / KOTA
-  ======================================== */
+  // ========================================
+  // AMBIL KABUPATEN / KOTA
+  // ========================================
 
   useEffect(() => {
     if (!locationData.provinceId) {
       return;
     }
 
-    const getRegencies = async () => {
+    const controller = new AbortController();
+
+    async function loadRegencies() {
       setLoadingRegency(true);
 
       try {
-        const response = await fetch(
+        const data = await fetchJSON(
           `${API_WILAYAH}/regencies/${locationData.provinceId}.json`,
+          { signal: controller.signal },
         );
 
-        if (!response.ok) {
-          throw new Error("Gagal mengambil kabupaten/kota");
+        if (!Array.isArray(data)) {
+          throw new Error("Format data kabupaten/kota tidak valid.");
         }
-
-        const data = await response.json();
 
         setRegencies(sortWilayah(data));
       } catch (error) {
-        console.error(error);
-        setRegencies([]);
+        if (error.name !== "AbortError") {
+          console.error("REGENCY ERROR:", error);
+          setRegencies([]);
+        }
       } finally {
-        setLoadingRegency(false);
+        if (!controller.signal.aborted) {
+          setLoadingRegency(false);
+        }
       }
-    };
+    }
 
-    getRegencies();
+    loadRegencies();
+
+    return () => controller.abort();
   }, [locationData.provinceId]);
 
-  /* ========================================
-     AMBIL KECAMATAN
-  ======================================== */
+  // ========================================
+  // AMBIL KECAMATAN
+  // ========================================
 
   useEffect(() => {
     if (!locationData.regencyId) {
       return;
     }
 
-    const getDistricts = async () => {
+    const controller = new AbortController();
+
+    async function loadDistricts() {
       setLoadingDistrict(true);
 
       try {
-        const response = await fetch(
+        const data = await fetchJSON(
           `${API_WILAYAH}/districts/${locationData.regencyId}.json`,
+          { signal: controller.signal },
         );
 
-        if (!response.ok) {
-          throw new Error("Gagal mengambil kecamatan");
+        if (!Array.isArray(data)) {
+          throw new Error("Format data kecamatan tidak valid.");
         }
-
-        const data = await response.json();
 
         setDistricts(sortWilayah(data));
       } catch (error) {
-        console.error(error);
-        setDistricts([]);
+        if (error.name !== "AbortError") {
+          console.error("DISTRICT ERROR:", error);
+          setDistricts([]);
+        }
       } finally {
-        setLoadingDistrict(false);
+        if (!controller.signal.aborted) {
+          setLoadingDistrict(false);
+        }
       }
-    };
+    }
 
-    getDistricts();
+    loadDistricts();
+
+    return () => controller.abort();
   }, [locationData.regencyId]);
 
-  /* ========================================
-     AMBIL DESA / KELURAHAN
-  ======================================== */
+  // ========================================
+  // AMBIL DESA / KELURAHAN
+  // ========================================
 
   useEffect(() => {
     if (!locationData.districtId) {
       return;
     }
 
-    const getVillages = async () => {
+    const controller = new AbortController();
+
+    async function loadVillages() {
       setLoadingVillage(true);
 
       try {
-        const response = await fetch(
+        const data = await fetchJSON(
           `${API_WILAYAH}/villages/${locationData.districtId}.json`,
+          { signal: controller.signal },
         );
 
-        if (!response.ok) {
-          throw new Error("Gagal mengambil desa/kelurahan");
+        if (!Array.isArray(data)) {
+          throw new Error("Format data desa/kelurahan tidak valid.");
         }
-
-        const data = await response.json();
 
         setVillages(sortWilayah(data));
       } catch (error) {
-        console.error(error);
-        setVillages([]);
+        if (error.name !== "AbortError") {
+          console.error("VILLAGE ERROR:", error);
+          setVillages([]);
+        }
       } finally {
-        setLoadingVillage(false);
+        if (!controller.signal.aborted) {
+          setLoadingVillage(false);
+        }
       }
-    };
+    }
 
-    getVillages();
+    loadVillages();
+
+    return () => controller.abort();
   }, [locationData.districtId]);
 
-  /* ========================================
-     PROVINSI
-  ======================================== */
+  // ========================================
+  // PILIH PROVINSI
+  // ========================================
 
-  const handleProvinceChange = (e) => {
-    const provinceId = e.target.value;
+  const handleProvinceChange = (event) => {
+    const provinceId = event.target.value;
 
-    const selectedProvince = provinces.find(
-      (item) => String(item.id) === String(provinceId),
-    );
+    const selected = provinces.find((item) => String(item.id) === provinceId);
 
-    setLocationData((prev) => ({
-      ...prev,
-
+    setLocationData((previous) => ({
+      ...previous,
       provinceId,
-
-      provinsi: selectedProvince?.name || "",
-
+      provinsi: selected?.name || "",
       regencyId: "",
       districtId: "",
       villageId: "",
-
       kabupaten: "",
       kecamatan: "",
       desa: "",
@@ -229,95 +277,94 @@ function BuatLaporan() {
     setRegencies([]);
     setDistricts([]);
     setVillages([]);
+    setLocationFound(false);
+    setLocationError("");
   };
 
-  /* ========================================
-     KABUPATEN
-  ======================================== */
+  // ========================================
+  // PILIH KABUPATEN / KOTA
+  // ========================================
 
-  const handleRegencyChange = (e) => {
-    const regencyId = e.target.value;
+  const handleRegencyChange = (event) => {
+    const regencyId = event.target.value;
 
-    const selectedRegency = regencies.find(
-      (item) => String(item.id) === String(regencyId),
-    );
+    const selected = regencies.find((item) => String(item.id) === regencyId);
 
-    setLocationData((prev) => ({
-      ...prev,
-
+    setLocationData((previous) => ({
+      ...previous,
       regencyId,
-
-      kabupaten: selectedRegency?.name || "",
-
+      kabupaten: selected?.name || "",
       districtId: "",
       villageId: "",
-
       kecamatan: "",
       desa: "",
     }));
 
     setDistricts([]);
     setVillages([]);
+    setLocationFound(false);
+    setLocationError("");
   };
 
-  /* ========================================
-     KECAMATAN
-  ======================================== */
+  // ========================================
+  // PILIH KECAMATAN
+  // ========================================
 
-  const handleDistrictChange = (e) => {
-    const districtId = e.target.value;
+  const handleDistrictChange = (event) => {
+    const districtId = event.target.value;
 
-    const selectedDistrict = districts.find(
-      (item) => String(item.id) === String(districtId),
-    );
+    const selected = districts.find((item) => String(item.id) === districtId);
 
-    setLocationData((prev) => ({
-      ...prev,
-
+    setLocationData((previous) => ({
+      ...previous,
       districtId,
-
-      kecamatan: selectedDistrict?.name || "",
-
+      kecamatan: selected?.name || "",
       villageId: "",
       desa: "",
     }));
 
     setVillages([]);
+    setLocationFound(false);
+    setLocationError("");
   };
 
-  /* ========================================
-     DESA
-  ======================================== */
+  // ========================================
+  // PILIH DESA / KELURAHAN
+  // ========================================
 
-  const handleVillageChange = (e) => {
-    const villageId = e.target.value;
+  const handleVillageChange = (event) => {
+    const villageId = event.target.value;
 
-    const selectedVillage = villages.find(
-      (item) => String(item.id) === String(villageId),
-    );
+    const selected = villages.find((item) => String(item.id) === villageId);
 
-    setLocationData((prev) => ({
-      ...prev,
-
+    setLocationData((previous) => ({
+      ...previous,
       villageId,
-
-      desa: selectedVillage?.name || "",
+      desa: selected?.name || "",
     }));
+
+    setLocationFound(false);
+    setLocationError("");
   };
 
-  /* ========================================
-     GPS
-  ======================================== */
+  // ========================================
+  // CARI WILAYAH DARI GPS
+  // ========================================
 
   const getCurrentLocation = () => {
     if (!navigator.geolocation) {
       setLocationError("Browser kamu tidak mendukung fitur lokasi.");
+      return;
+    }
 
+    if (provinces.length === 0) {
+      setLocationError("Data provinsi belum tersedia. Coba lagi sebentar.");
       return;
     }
 
     setLocationLoading(true);
     setLocationError("");
+    setLocationFound(false);
 
     navigator.geolocation.getCurrentPosition(
       async (position) => {
@@ -325,38 +372,41 @@ function BuatLaporan() {
 
         try {
           const response = await fetch(
-            `https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=json&addressdetails=1&zoom=18`,
+            "https://nominatim.openstreetmap.org/reverse" +
+              `?lat=${latitude}&lon=${longitude}` +
+              "&format=json&addressdetails=1&zoom=18",
             {
               headers: {
                 Accept: "application/json",
-
                 "Accept-Language": "id-ID,id;q=0.9,en;q=0.8",
               },
             },
           );
 
           if (!response.ok) {
-            throw new Error("Gagal mendapatkan lokasi");
+            throw new Error("Gagal mendapatkan alamat dari koordinat GPS.");
           }
 
-          const data = await response.json();
+          const result = await response.json();
+          const address = result.address || {};
 
-          const address = data.address || {};
-
-          const namaProvinsi =
+          const provinceName =
             address.state || address.province || address.region || "";
 
-          const namaKabupaten =
-            address.county || address.city || address.town || "";
-
-          const namaKecamatan =
-            address.district ||
-            address.subdistrict ||
+          const regencyName =
+            address.city ||
+            address.county ||
+            address.town ||
             address.municipality ||
-            address.city_district ||
             "";
 
-          const namaDesa =
+          const districtName =
+            address.city_district ||
+            address.district ||
+            address.subdistrict ||
+            "";
+
+          const villageName =
             address.village ||
             address.suburb ||
             address.neighbourhood ||
@@ -364,148 +414,124 @@ function BuatLaporan() {
             "";
 
           const selectedProvince = provinces.find(
-            (item) => normalizeName(item.name) === normalizeName(namaProvinsi),
+            (item) => normalizeName(item.name) === normalizeName(provinceName),
           );
 
-          setLocationData((prev) => ({
-            ...prev,
-
-            provinceId: selectedProvince?.id || "",
-
-            provinsi: selectedProvince?.name || namaProvinsi,
-
-            kabupaten: namaKabupaten,
-
-            kecamatan: namaKecamatan,
-
-            desa: namaDesa,
-
-            alamat: data.display_name || "",
-
+          setLocationData((previous) => ({
+            ...previous,
+            provinceId: selectedProvince ? String(selectedProvince.id) : "",
+            provinsi: selectedProvince?.name || provinceName,
+            regencyId: "",
+            districtId: "",
+            villageId: "",
+            kabupaten: regencyName,
+            kecamatan: districtName,
+            desa: villageName,
+            alamat: result.display_name || "",
             latitude: latitude.toFixed(6),
-
             longitude: longitude.toFixed(6),
           }));
 
-          setLocationFound(true);
+          setRegencies([]);
+          setDistricts([]);
+          setVillages([]);
 
-          /* =========================
-             CARI KABUPATEN
-          ========================= */
-
-          if (selectedProvince?.id) {
-            const regencyResponse = await fetch(
-              `${API_WILAYAH}/regencies/${selectedProvince.id}.json`,
+          if (!selectedProvince) {
+            setLocationError(
+              "Koordinat ditemukan, tetapi provinsi belum cocok. Silakan pilih wilayah secara manual.",
             );
-
-            if (!regencyResponse.ok) {
-              throw new Error("Gagal mengambil kabupaten/kota");
-            }
-
-            const regencyData = await regencyResponse.json();
-
-            const regencyList = sortWilayah(regencyData);
-
-            setRegencies(regencyList);
-
-            const gpsRegency = normalizeName(namaKabupaten);
-
-            const selectedRegency = regencyList.find((item) => {
-              const itemName = normalizeName(item.name);
-
-              return (
-                itemName === gpsRegency ||
-                itemName.includes(gpsRegency) ||
-                gpsRegency.includes(itemName)
-              );
-            });
-
-            if (selectedRegency) {
-              setLocationData((prev) => ({
-                ...prev,
-
-                regencyId: selectedRegency.id,
-
-                kabupaten: selectedRegency.name,
-              }));
-
-              /* =========================
-                 CARI KECAMATAN
-              ========================= */
-
-              const districtResponse = await fetch(
-                `${API_WILAYAH}/districts/${selectedRegency.id}.json`,
-              );
-
-              if (!districtResponse.ok) {
-                throw new Error("Gagal mengambil kecamatan");
-              }
-
-              const districtData = await districtResponse.json();
-
-              const districtList = sortWilayah(districtData);
-
-              setDistricts(districtList);
-
-              const gpsDistrict = normalizeName(namaKecamatan);
-
-              const selectedDistrict = districtList.find(
-                (item) => normalizeName(item.name) === gpsDistrict,
-              );
-
-              if (selectedDistrict) {
-                setLocationData((prev) => ({
-                  ...prev,
-
-                  districtId: selectedDistrict.id,
-
-                  kecamatan: selectedDistrict.name,
-                }));
-
-                /* =========================
-                   CARI DESA
-                ========================= */
-
-                const villageResponse = await fetch(
-                  `${API_WILAYAH}/villages/${selectedDistrict.id}.json`,
-                );
-
-                if (!villageResponse.ok) {
-                  throw new Error("Gagal mengambil desa/kelurahan");
-                }
-
-                const villageData = await villageResponse.json();
-
-                const villageList = sortWilayah(villageData);
-
-                setVillages(villageList);
-
-                const gpsVillage = normalizeName(namaDesa);
-
-                const selectedVillage = villageList.find(
-                  (item) => normalizeName(item.name) === gpsVillage,
-                );
-
-                if (selectedVillage) {
-                  setLocationData((prev) => ({
-                    ...prev,
-
-                    villageId: selectedVillage.id,
-
-                    desa: selectedVillage.name,
-                  }));
-                }
-              }
-            }
+            return;
           }
-        } catch (error) {
-          console.error("LOCATION ERROR:", error);
 
-          setLocationError(
-            "Lokasi ditemukan, tetapi data wilayah gagal diambil.",
+          const regencyData = sortWilayah(
+            await fetchJSON(
+              `${API_WILAYAH}/regencies/${selectedProvince.id}.json`,
+            ),
           );
 
-          setLocationFound(false);
+          setRegencies(regencyData);
+
+          const normalizedRegency = normalizeName(regencyName);
+
+          const selectedRegency = regencyData.find(
+            (item) => normalizeName(item.name) === normalizedRegency,
+          );
+
+          if (!selectedRegency) {
+            setLocationError(
+              "Provinsi ditemukan, tetapi kabupaten/kota belum cocok. Silakan pilih secara manual.",
+            );
+            return;
+          }
+
+          setLocationData((previous) => ({
+            ...previous,
+            regencyId: String(selectedRegency.id),
+            kabupaten: selectedRegency.name,
+          }));
+
+          const districtData = sortWilayah(
+            await fetchJSON(
+              `${API_WILAYAH}/districts/${selectedRegency.id}.json`,
+            ),
+          );
+
+          setDistricts(districtData);
+
+          const normalizedDistrict = normalizeName(districtName);
+
+          const selectedDistrict = districtData.find(
+            (item) => normalizeName(item.name) === normalizedDistrict,
+          );
+
+          if (!selectedDistrict) {
+            setLocationError(
+              "Kabupaten/kota ditemukan, tetapi kecamatan belum cocok. Silakan pilih secara manual.",
+            );
+            return;
+          }
+
+          setLocationData((previous) => ({
+            ...previous,
+            districtId: String(selectedDistrict.id),
+            kecamatan: selectedDistrict.name,
+          }));
+
+          const villageData = sortWilayah(
+            await fetchJSON(
+              `${API_WILAYAH}/villages/${selectedDistrict.id}.json`,
+            ),
+          );
+
+          setVillages(villageData);
+
+          const normalizedVillage = normalizeName(villageName);
+
+          const selectedVillage = villageData.find(
+            (item) => normalizeName(item.name) === normalizedVillage,
+          );
+
+          if (!selectedVillage) {
+            setLocationError(
+              "Kecamatan ditemukan, tetapi desa/kelurahan belum cocok. Silakan pilih secara manual.",
+            );
+            return;
+          }
+
+          setLocationData((previous) => ({
+            ...previous,
+            villageId: String(selectedVillage.id),
+            desa: selectedVillage.name,
+          }));
+
+          setLocationFound(true);
+          setLocationError("");
+        } catch (error) {
+          console.error("GPS ERROR:", error);
+
+          setLocationError(
+            "Lokasi GPS didapatkan, tetapi pencocokan wilayah gagal. Silakan pilih wilayah secara manual.",
+          );
         } finally {
           setLocationLoading(false);
         }
@@ -520,7 +546,7 @@ function BuatLaporan() {
           );
         } else if (error.code === 2) {
           setLocationError(
-            "Lokasi tidak ditemukan. Pastikan GPS perangkat aktif.",
+            "Lokasi tidak ditemukan. Pastikan layanan lokasi perangkat aktif.",
           );
         } else if (error.code === 3) {
           setLocationError("Pencarian lokasi terlalu lama. Silakan coba lagi.");
@@ -537,74 +563,95 @@ function BuatLaporan() {
     );
   };
 
-  /* ========================================
-     FOTO
-  ======================================== */
+  // ========================================
+  // PILIH FOTO
+  // ========================================
 
-  const handlePhotoChange = (e) => {
-    const file = e.target.files?.[0];
+  const handlePhotoChange = (event) => {
+    const file = event.target.files?.[0];
 
-    if (!file) {
-      return;
-    }
+    if (!file) return;
 
-    if (!file.type.startsWith("image/")) {
-      alert("File yang dipilih harus berupa gambar.");
+    setPhotoError("");
 
-      e.target.value = "";
+    const allowedTypes = ["image/jpeg", "image/png", "image/webp"];
+
+    if (!allowedTypes.includes(file.type)) {
+      setPhotoError("Gunakan foto JPEG, PNG, atau WebP.");
+      event.target.value = "";
       return;
     }
 
     if (file.size > 2 * 1024 * 1024) {
-      alert("Ukuran foto maksimal 2 MB.");
-
-      e.target.value = "";
+      setPhotoError("Ukuran foto maksimal 2 MB.");
+      event.target.value = "";
       return;
     }
-
-    setSelectedPhoto(file);
 
     const reader = new FileReader();
 
     reader.onload = () => {
+      if (typeof reader.result !== "string") {
+        setPhotoError("Foto gagal dibaca. Silakan pilih foto lain.");
+        return;
+      }
+
+      setSelectedPhoto(file);
       setPhotoPreview(reader.result);
+    };
+
+    reader.onerror = () => {
+      setPhotoError("Foto gagal dibaca. Silakan coba lagi.");
     };
 
     reader.readAsDataURL(file);
   };
 
-  /* ========================================
-     SUBMIT LAPORAN
-  ======================================== */
+  const handleRemovePhoto = () => {
+    setSelectedPhoto(null);
+    setPhotoPreview("");
+    setPhotoError("");
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
+    const input = document.getElementById("foto");
 
-    const form = e.target;
+    if (input) {
+      input.value = "";
+    }
+  };
 
-    /* =========================
-       USER
-    ========================= */
+  // ========================================
+  // KIRIM LAPORAN
+  // ========================================
 
-    const rawUser = localStorage.getItem("user");
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+
+    if (submitting) return;
+
+    const form = event.currentTarget;
+    const token = localStorage.getItem("token");
 
     let user;
 
     try {
-      user = rawUser ? JSON.parse(rawUser) : null;
+      user = JSON.parse(localStorage.getItem("user") || "null");
     } catch {
       user = null;
     }
 
-    if (!user?.email) {
-      alert("Silakan login terlebih dahulu.");
-
+    if (!token || !user || localStorage.getItem("isLoggedIn") !== "true") {
+      alert("Silakan login terlebih dahulu untuk membuat laporan.");
+      navigate("/login");
       return;
     }
 
-    /* =========================
-       VALIDASI LOKASI
-    ========================= */
+    const categoryCode = form.elements.kategori.value;
+    const categoryId = kategoriId[categoryCode];
+
+    if (!categoryId) {
+      alert("Silakan pilih kategori laporan.");
+      return;
+    }
 
     if (
       !locationData.provinceId ||
@@ -613,169 +660,106 @@ function BuatLaporan() {
       !locationData.villageId
     ) {
       alert(
-        "Silakan lengkapi Provinsi, Kabupaten/Kota, Kecamatan, dan Desa/Kelurahan.",
+        "Lengkapi Provinsi, Kabupaten/Kota, Kecamatan, dan Desa/Kelurahan.",
       );
-
       return;
     }
 
-    if (!detailLokasi.trim()) {
-      alert("Silakan isi patokan atau detail lokasi.");
+    const title = form.elements.judul.value.trim();
+    const description = form.elements.deskripsi.value.trim();
 
+    if (!title || !description || !detailLokasi.trim()) {
+      alert("Judul, deskripsi, dan detail lokasi wajib diisi.");
       return;
     }
 
-    /* =========================
-       DATA LAPORAN
-    ========================= */
+    if (title.length > 200) {
+      alert("Judul laporan maksimal 200 karakter.");
+      return;
+    }
 
-    const newReport = {
-      id: Date.now(),
-
-      userEmail: user.email,
-
-      username: user.username || user.name || "Pengguna",
-
-      title: form.judul.value.trim(),
-
-      category: form.kategori.value,
-
-      categoryLabel: kategoriLabel[form.kategori.value] || "Lainnya",
-
-      description: form.deskripsi.value.trim(),
-
-      location:
-        locationData.alamat ||
-        `${locationData.desa}, ${locationData.kecamatan}, ${locationData.kabupaten}, ${locationData.provinsi}`,
-
-      lokasi: {
-        provinceId: locationData.provinceId,
-
-        regencyId: locationData.regencyId,
-
-        districtId: locationData.districtId,
-
-        villageId: locationData.villageId,
-
-        provinsi: locationData.provinsi,
-
-        kabupaten: locationData.kabupaten,
-
-        kecamatan: locationData.kecamatan,
-
-        desa: locationData.desa,
-
-        alamat: locationData.alamat,
-
-        detail: detailLokasi.trim(),
-
-        latitude: locationData.latitude,
-
-        longitude: locationData.longitude,
-      },
-
-      photo: photoPreview || "",
-
-      photoName: selectedPhoto?.name || "",
-
-      status: "Menunggu",
-
-      statusClass: "waiting",
-
-      date: new Date().toLocaleDateString("id-ID", {
-        day: "numeric",
-        month: "long",
-        year: "numeric",
-      }),
-
-      createdAt: new Date().toISOString(),
-
-      timeline: [
-        {
-          title: "Laporan dikirim",
-          description:
-            "Laporan berhasil dikirim dan sedang menunggu pemeriksaan.",
-          date: new Date().toLocaleDateString("id-ID", {
-            day: "numeric",
-            month: "long",
-            year: "numeric",
-          }),
-          completed: true,
-        },
-        {
-          title: "Laporan diverifikasi",
-          description: "Laporan akan diperiksa oleh petugas.",
-          completed: false,
-        },
-        {
-          title: "Dalam proses",
-          description: "Laporan sedang ditindaklanjuti.",
-          completed: false,
-        },
-        {
-          title: "Selesai",
-          description: "Permasalahan telah selesai ditangani.",
-          completed: false,
-        },
-      ],
-    };
-
-    /* =========================
-       AMBIL DATA LAMA
-    ========================= */
-
-    let existingReports;
+    setSubmitting(true);
 
     try {
-      const parsedReports = JSON.parse(
-        localStorage.getItem("laporanSaya") || "[]",
+      const payload = {
+        category_id: categoryId,
+        title,
+        description,
+
+        province_id: String(locationData.provinceId),
+        province_name: locationData.provinsi,
+
+        regency_id: String(locationData.regencyId),
+        regency_name: locationData.kabupaten,
+
+        district_id: String(locationData.districtId),
+        district_name: locationData.kecamatan,
+
+        village_id: String(locationData.villageId),
+        village_name: locationData.desa,
+
+        address: locationData.alamat.trim(),
+        location_detail: detailLokasi.trim(),
+
+        latitude: locationData.latitude || null,
+        longitude: locationData.longitude || null,
+
+        photo: photoPreview || null,
+        photo_name: selectedPhoto?.name || null,
+      };
+
+      const result = await fetchJSON(`${API_URL}/api/reports`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(payload),
+      });
+
+      if (result?.success !== true) {
+        throw new Error(
+          result?.message || "Server belum mengonfirmasi keberhasilan laporan.",
+        );
+      }
+
+      window.dispatchEvent(new Event("laporanUpdated"));
+
+      alert("Laporan berhasil dikirim!");
+
+      navigate("/laporan-saya");
+    } catch (error) {
+      console.error("CREATE REPORT ERROR:", error);
+
+      alert(
+        error.message || "Laporan gagal dikirim. Periksa koneksi dan backend.",
       );
-
-      existingReports = Array.isArray(parsedReports) ? parsedReports : [];
-    } catch {
-      existingReports = [];
+    } finally {
+      setSubmitting(false);
     }
-
-    /* =========================
-       MASUKKAN LAPORAN TERBARU
-    ========================= */
-
-    existingReports.unshift(newReport);
-
-    /* =========================
-       SIMPAN
-    ========================= */
-
-    localStorage.setItem("laporanSaya", JSON.stringify(existingReports));
-
-    /* =========================
-       EVENT UPDATE
-    ========================= */
-
-    window.dispatchEvent(new Event("laporanUpdated"));
-
-    console.log("DATA LAPORAN:", newReport);
-
-    alert("Laporan berhasil dikirim!");
-
-    window.location.href = "/laporan-saya";
   };
+
+  // ========================================
+  // TAMPILAN
+  // ========================================
 
   return (
     <main className="buat-laporan-page">
       <div className="buat-laporan-background">
         <div className="buat-laporan-grid"></div>
-
         <div className="buat-laporan-orb buat-laporan-orb-one"></div>
-
         <div className="buat-laporan-orb buat-laporan-orb-two"></div>
       </div>
 
       <header className="buat-laporan-header">
-        <a href="/" className="buat-laporan-back">
+        <button
+          type="button"
+          className="buat-laporan-back"
+          onClick={() => navigate(-1)}
+        >
           <span>←</span>
           Kembali
-        </a>
+        </button>
 
         <div className="buat-laporan-heading">
           <div className="buat-laporan-label">
@@ -794,9 +778,7 @@ function BuatLaporan() {
 
       <section className="buat-laporan-card">
         <form className="buat-laporan-form" onSubmit={handleSubmit}>
-          {/* ========================================
-              01 INFORMASI
-          ======================================== */}
+          {/* 01 — INFORMASI LAPORAN */}
 
           <div className="form-section">
             <div className="form-section-header">
@@ -804,21 +786,20 @@ function BuatLaporan() {
 
               <div>
                 <h2>Informasi laporan</h2>
-
                 <p>Jelaskan permasalahan yang ingin kamu laporkan.</p>
               </div>
             </div>
 
             <div className="laporan-form-group">
               <label htmlFor="judul">
-                Judul laporan
-                <span>*</span>
+                Judul laporan <span>*</span>
               </label>
 
               <input
                 id="judul"
                 name="judul"
                 type="text"
+                maxLength={200}
                 placeholder="Contoh: Jalan berlubang di depan pasar"
                 required
               />
@@ -826,33 +807,27 @@ function BuatLaporan() {
 
             <div className="laporan-form-group">
               <label htmlFor="kategori">
-                Kategori
-                <span>*</span>
+                Kategori <span>*</span>
               </label>
 
               <select id="kategori" name="kategori" defaultValue="" required>
                 <option value="" disabled>
                   Pilih kategori laporan
                 </option>
-
-                <option value="jalan">Jalan dan transportasi</option>
-
-                <option value="fasilitas">Fasilitas umum</option>
-
-                <option value="penerangan">Penerangan jalan</option>
-
+                <option value="jalan">Jalan Rusak</option>
+                <option value="fasilitas">Fasilitas Umum</option>
+                <option value="drainase">Drainase</option>
+                <option value="penerangan">Penerangan Jalan</option>
                 <option value="lingkungan">Lingkungan</option>
-
-                <option value="drainase">Drainase dan saluran air</option>
-
+                <option value="transportasi">Transportasi</option>
+                <option value="keamanan">Keamanan</option>
                 <option value="lainnya">Lainnya</option>
               </select>
             </div>
 
             <div className="laporan-form-group">
               <label htmlFor="deskripsi">
-                Deskripsi masalah
-                <span>*</span>
+                Deskripsi masalah <span>*</span>
               </label>
 
               <textarea
@@ -870,9 +845,7 @@ function BuatLaporan() {
             </div>
           </div>
 
-          {/* ========================================
-              02 LOKASI
-          ======================================== */}
+          {/* 02 — LOKASI */}
 
           <div className="form-section">
             <div className="form-section-header">
@@ -880,10 +853,9 @@ function BuatLaporan() {
 
               <div>
                 <h2>Lokasi kejadian</h2>
-
                 <p>
-                  Tentukan lokasi laporan secara otomatis atau pilih wilayah
-                  secara manual.
+                  Tentukan lokasi laporan melalui GPS atau pilih wilayah secara
+                  manual.
                 </p>
               </div>
             </div>
@@ -896,8 +868,7 @@ function BuatLaporan() {
 
                 <div className="location-detector-content">
                   <strong>Gunakan lokasi saya</strong>
-
-                  <p>GPS akan membantu mengisi wilayah secara otomatis.</p>
+                  <p>GPS membantu mengisi wilayah secara otomatis.</p>
                 </div>
               </div>
 
@@ -921,7 +892,6 @@ function BuatLaporan() {
               {locationError && (
                 <div className="location-error">
                   <span>!</span>
-
                   <p>{locationError}</p>
                 </div>
               )}
@@ -958,6 +928,7 @@ function BuatLaporan() {
                     id="provinsi"
                     value={locationData.provinceId}
                     onChange={handleProvinceChange}
+                    required
                   >
                     <option value="">
                       {loadingProvince
@@ -965,9 +936,9 @@ function BuatLaporan() {
                         : "Pilih provinsi"}
                     </option>
 
-                    {provinces.map((province) => (
-                      <option key={province.id} value={province.id}>
-                        {province.name}
+                    {provinces.map((item) => (
+                      <option key={item.id} value={item.id}>
+                        {item.name}
                       </option>
                     ))}
                   </select>
@@ -981,6 +952,7 @@ function BuatLaporan() {
                     value={locationData.regencyId}
                     onChange={handleRegencyChange}
                     disabled={!locationData.provinceId || loadingRegency}
+                    required
                   >
                     <option value="">
                       {loadingRegency
@@ -990,9 +962,9 @@ function BuatLaporan() {
                           : "Pilih kabupaten / kota"}
                     </option>
 
-                    {regencies.map((regency) => (
-                      <option key={regency.id} value={regency.id}>
-                        {regency.name}
+                    {regencies.map((item) => (
+                      <option key={item.id} value={item.id}>
+                        {item.name}
                       </option>
                     ))}
                   </select>
@@ -1006,6 +978,7 @@ function BuatLaporan() {
                     value={locationData.districtId}
                     onChange={handleDistrictChange}
                     disabled={!locationData.regencyId || loadingDistrict}
+                    required
                   >
                     <option value="">
                       {loadingDistrict
@@ -1015,9 +988,9 @@ function BuatLaporan() {
                           : "Pilih kecamatan"}
                     </option>
 
-                    {districts.map((district) => (
-                      <option key={district.id} value={district.id}>
-                        {district.name}
+                    {districts.map((item) => (
+                      <option key={item.id} value={item.id}>
+                        {item.name}
                       </option>
                     ))}
                   </select>
@@ -1031,6 +1004,7 @@ function BuatLaporan() {
                     value={locationData.villageId}
                     onChange={handleVillageChange}
                     disabled={!locationData.districtId || loadingVillage}
+                    required
                   >
                     <option value="">
                       {loadingVillage
@@ -1040,9 +1014,9 @@ function BuatLaporan() {
                           : "Pilih desa / kelurahan"}
                     </option>
 
-                    {villages.map((village) => (
-                      <option key={village.id} value={village.id}>
-                        {village.name}
+                    {villages.map((item) => (
+                      <option key={item.id} value={item.id}>
+                        {item.name}
                       </option>
                     ))}
                   </select>
@@ -1055,10 +1029,10 @@ function BuatLaporan() {
                     id="alamat"
                     rows="3"
                     value={locationData.alamat}
-                    onChange={(e) =>
-                      setLocationData((prev) => ({
-                        ...prev,
-                        alamat: e.target.value,
+                    onChange={(event) =>
+                      setLocationData((previous) => ({
+                        ...previous,
+                        alamat: event.target.value,
                       }))
                     }
                     placeholder="Alamat lengkap..."
@@ -1066,26 +1040,23 @@ function BuatLaporan() {
 
                   <div className="location-address-help">
                     <span>i</span>
-
                     <p>
-                      Mohon maaf jika alamat yang terdeteksi kurang sesuai. Kamu
-                      dapat mengubah alamat di atas dengan alamat yang benar
-                      agar lokasi laporan lebih akurat.
+                      Periksa kembali alamat yang terdeteksi dan sesuaikan jika
+                      diperlukan.
                     </p>
                   </div>
                 </div>
 
                 <div className="location-edit-field location-edit-field-full">
                   <label htmlFor="detailLokasi">
-                    Patokan / detail lokasi
-                    <span>*</span>
+                    Patokan / detail lokasi <span>*</span>
                   </label>
 
                   <textarea
                     id="detailLokasi"
                     rows="3"
                     value={detailLokasi}
-                    onChange={(e) => setDetailLokasi(e.target.value)}
+                    onChange={(event) => setDetailLokasi(event.target.value)}
                     placeholder="Contoh: di depan minimarket, dekat lampu merah, sebelah sekolah..."
                     required
                   ></textarea>
@@ -1096,15 +1067,12 @@ function BuatLaporan() {
                 </div>
               </div>
 
-              {locationFound && (
+              {locationData.latitude && locationData.longitude && (
                 <div className="location-coordinate">
                   <div>
                     <span className="coordinate-label">Koordinat GPS</span>
-
                     <strong>
-                      {locationData.latitude}
-                      {" , "}
-                      {locationData.longitude}
+                      {locationData.latitude}, {locationData.longitude}
                     </strong>
                   </div>
 
@@ -1114,7 +1082,6 @@ function BuatLaporan() {
 
               <div className="location-edit-info">
                 <span>✎</span>
-
                 <p>
                   Wilayah bisa diubah secara manual. Kecamatan mengikuti
                   Kabupaten/Kota dan Desa/Kelurahan mengikuti Kecamatan.
@@ -1124,7 +1091,6 @@ function BuatLaporan() {
 
             <div className="location-note">
               <span className="location-note-icon">i</span>
-
               <p>
                 Urutan wilayah: Provinsi → Kabupaten/Kota → Kecamatan →
                 Desa/Kelurahan.
@@ -1132,9 +1098,7 @@ function BuatLaporan() {
             </div>
           </div>
 
-          {/* ========================================
-              03 FOTO
-          ======================================== */}
+          {/* 03 — FOTO */}
 
           <div className="form-section">
             <div className="form-section-header">
@@ -1142,24 +1106,20 @@ function BuatLaporan() {
 
               <div>
                 <h2>Foto pendukung</h2>
-
                 <p>Tambahkan foto untuk membantu menjelaskan kondisi.</p>
               </div>
             </div>
 
             <div className="upload-area">
               <div className="upload-icon">↑</div>
-
               <h3>Unggah foto</h3>
-
               <p>Pilih foto dari perangkatmu</p>
-
-              <span>JPG, JPEG, atau PNG · Maksimal 2 MB</span>
+              <span>JPG, JPEG, PNG, atau WebP · Maksimal 2 MB</span>
 
               <input
                 type="file"
                 id="foto"
-                accept="image/png,image/jpeg,image/jpg"
+                accept="image/jpeg,image/png,image/webp"
                 onChange={handlePhotoChange}
               />
 
@@ -1167,64 +1127,54 @@ function BuatLaporan() {
                 Pilih foto
               </label>
 
-              {photoPreview && (
-                <div
-                  style={{
-                    marginTop: "20px",
-                  }}
-                >
-                  <img
-                    src={photoPreview}
-                    alt="Preview foto laporan"
-                    style={{
-                      width: "100%",
-                      maxWidth: "400px",
-                      maxHeight: "260px",
-                      objectFit: "cover",
-                      borderRadius: "14px",
-                      display: "block",
-                      margin: "0 auto",
-                    }}
-                  />
+              {photoError && (
+                <p role="alert" className="photo-error">
+                  {photoError}
+                </p>
+              )}
 
-                  <p
-                    style={{
-                      marginTop: "10px",
-                      fontSize: "13px",
-                    }}
-                  >
-                    {selectedPhoto?.name}
-                  </p>
+              {photoPreview && (
+                <div className="photo-preview">
+                  <img src={photoPreview} alt="Preview foto laporan" />
+
+                  <p>{selectedPhoto?.name}</p>
+
+                  <button type="button" onClick={handleRemovePhoto}>
+                    Hapus foto
+                  </button>
                 </div>
               )}
             </div>
           </div>
 
-          {/* ========================================
-              SUBMIT
-          ======================================== */}
+          {/* KIRIM LAPORAN */}
 
           <div className="laporan-submit">
             <div className="submit-info">
               <span>✓</span>
-
               <p>
                 Pastikan informasi yang kamu masukkan sudah sesuai sebelum
                 mengirim laporan.
               </p>
             </div>
 
-            <button type="submit" className="laporan-submit-button">
-              <span>Kirim laporan</span>
+            <button
+              type="submit"
+              className="laporan-submit-button"
+              disabled={submitting}
+            >
+              <span>
+                {submitting ? "Mengirim laporan..." : "Kirim laporan"}
+              </span>
 
-              <span>→</span>
+              <span>{submitting ? "◌" : "→"}</span>
             </button>
           </div>
         </form>
       </section>
 
       <footer className="buat-laporan-footer">
-        Laporkita · Bersama menyampaikan informasi untuk lingkungan yang lebih
+        LaporKita · Bersama menyampaikan informasi untuk lingkungan yang lebih
         baik.
       </footer>
     </main>

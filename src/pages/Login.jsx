@@ -1,358 +1,537 @@
+
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
+
 import "../styles/login.css";
+import logoLaporKita from "../assets/logo-laporkita.png";
+
+// ========================================
+// KONFIGURASI API
+// ========================================
+
+const API_URL = (
+  import.meta.env.VITE_API_URL || "http://localhost:5000"
+).replace(/\/$/, "");
+
+// ========================================
+// ICON
+// ========================================
+
+function EyeIcon({ visible }) {
+  return visible ? (
+    <svg viewBox="0 0 24 24" fill="none">
+      <path
+        d="M2.5 12C4.2 7.8 7.7 5.5 12 5.5C16.3 5.5 19.8 7.8 21.5 12C19.8 16.2 16.3 18.5 12 18.5C7.7 18.5 4.2 16.2 2.5 12Z"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <circle
+        cx="12"
+        cy="12"
+        r="3"
+        stroke="currentColor"
+        strokeWidth="1.8"
+      />
+    </svg>
+  ) : (
+    <svg viewBox="0 0 24 24" fill="none">
+      <path
+        d="M3 3L21 21"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+      />
+      <path
+        d="M10.6 5.7C11.05 5.57 11.52 5.5 12 5.5C16.3 5.5 19.8 7.8 21.5 12C20.85 13.6 19.9 14.95 18.7 16"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M6.1 6.1C4.5 7.3 3.3 9.05 2.5 12C4.2 16.2 7.7 18.5 12 18.5C13.1 18.5 14.15 18.3 15.1 17.95"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+function MailIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none">
+      <rect
+        x="3"
+        y="5"
+        width="18"
+        height="14"
+        rx="3"
+        stroke="currentColor"
+        strokeWidth="1.7"
+      />
+      <path
+        d="M4.5 7L12 13L19.5 7"
+        stroke="currentColor"
+        strokeWidth="1.7"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+function LockIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none">
+      <rect
+        x="4"
+        y="10"
+        width="16"
+        height="11"
+        rx="3"
+        stroke="currentColor"
+        strokeWidth="1.7"
+      />
+      <path
+        d="M8 10V7.5C8 5.29 9.79 3.5 12 3.5C14.21 3.5 16 5.29 16 7.5V10"
+        stroke="currentColor"
+        strokeWidth="1.7"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}
+
+function ShieldIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none">
+      <path
+        d="M12 3L19 6V11.5C19 16 16.15 19.25 12 21C7.85 19.25 5 16 5 11.5V6L12 3Z"
+        stroke="currentColor"
+        strokeWidth="1.7"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M9 12L11 14L15 10"
+        stroke="currentColor"
+        strokeWidth="1.7"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+function ArrowIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none">
+      <path
+        d="M5 12H19"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+      />
+      <path
+        d="M13 6L19 12L13 18"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+// ========================================
+// HALAMAN LOGIN
+// ========================================
 
 function Login() {
   const navigate = useNavigate();
+  const location = useLocation();
 
+  // FORM
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+
+  // UI
   const [showPassword, setShowPassword] = useState(false);
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  const handleLogin = (e) => {
+  // ========================================
+  // HANDLE LOGIN
+  // ========================================
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
 
-    const form = e.target;
+    if (loading) return;
 
-    const email = form.email.value.trim().toLowerCase();
-    const password = form.password.value;
+    setError("");
 
-    if (!email || !password) {
-      alert("Silakan lengkapi email dan password terlebih dahulu.");
+    const cleanEmail = email.trim().toLowerCase();
+
+    if (!cleanEmail || !password) {
+      setError("Email dan password wajib diisi.");
       return;
     }
 
-    let users;
+    setLoading(true);
 
     try {
-      users = JSON.parse(localStorage.getItem("users") || "[]");
-    } catch {
-      users = [];
-    }
+      const response = await fetch(`${API_URL}/api/auth/login`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email: cleanEmail,
+          password,
+        }),
+      });
 
-    if (!Array.isArray(users)) {
-      users = [];
-    }
+      const data = await response.json();
 
-    const account = users.find(
-      (user) => user.email?.toLowerCase() === email
-    );
+      if (!response.ok || !data.success) {
+        setError(data.message || "Email atau password salah.");
+        return;
+      }
 
-    if (!account) {
-      alert("Email atau password salah.");
-      return;
-    }
+      if (!data.token || !data.user) {
+        setError("Respons dari server tidak lengkap.");
+        return;
+      }
 
-    if (account.password !== password) {
-      alert("Email atau password salah.");
-      return;
-    }
+      // Login ini khusus pengguna biasa.
+      if (data.user.role !== "user") {
+        setError(
+          "Akun administrator harus masuk melalui halaman administrator."
+        );
+        return;
+      }
 
-    let existingUser;
+      // ========================================
+      // SIMPAN DATA LOGIN
+      // ========================================
 
-    try {
-      existingUser = JSON.parse(
-        localStorage.getItem("user") || "null"
+      const userData = data.user;
+
+      // Mendukung dua format nama properti foto.
+      const profileImage =
+        userData.profile_image ||
+        userData.profileImage ||
+        null;
+
+      const activeUser = {
+        ...userData,
+        id: userData.id,
+        username: userData.username,
+        email: userData.email,
+        role: userData.role,
+
+        // Pertahankan kedua nama properti agar
+        // kompatibel dengan komponen frontend.
+        profile_image: profileImage,
+        profileImage: profileImage,
+      };
+
+      // Hapus sesi lama setelah login berhasil.
+      localStorage.removeItem("token");
+      localStorage.removeItem("user");
+      localStorage.removeItem("isLoggedIn");
+
+      // Simpan sesi baru.
+      localStorage.setItem("token", data.token);
+      localStorage.setItem("user", JSON.stringify(activeUser));
+      localStorage.setItem("isLoggedIn", "true");
+
+      // Beri tahu Navbar dan komponen lain.
+      window.dispatchEvent(new Event("userUpdated"));
+
+      // ========================================
+      // AMBIL DATA PENGGUNA TERBARU
+      // ========================================
+
+      // Backend /api/auth/me harus mengembalikan
+      // profile_image dari database.
+      try {
+        const profileResponse = await fetch(
+          `${API_URL}/api/auth/me`,
+          {
+            method: "GET",
+            headers: {
+              Authorization: `Bearer ${data.token}`,
+            },
+          }
+        );
+
+        if (profileResponse.ok) {
+          const profileData = await profileResponse.json();
+
+          if (profileData.success && profileData.user) {
+            const latestUser = profileData.user;
+
+            const latestProfileImage =
+              latestUser.profile_image ||
+              latestUser.profileImage ||
+              profileImage;
+
+            const updatedUser = {
+              ...activeUser,
+              ...latestUser,
+              profile_image: latestProfileImage,
+              profileImage: latestProfileImage,
+            };
+
+            localStorage.setItem(
+              "user",
+              JSON.stringify(updatedUser)
+            );
+
+            window.dispatchEvent(new Event("userUpdated"));
+          }
+        }
+      } catch (profileError) {
+        // Login tetap berhasil meskipun permintaan
+        // tambahan untuk mengambil profil gagal.
+        console.error(
+          "GAGAL MEMPERBARUI DATA PROFIL:",
+          profileError
+        );
+      }
+
+      // ========================================
+      // NAVIGASI
+      // ========================================
+
+      const from = location.state?.from;
+
+      const destination =
+        typeof from === "string" &&
+        from.startsWith("/") &&
+        !from.startsWith("//")
+          ? from
+          : "/";
+
+      navigate(destination, { replace: true });
+    } catch (err) {
+      console.error("LOGIN ERROR:", err);
+
+      setError(
+        "Gagal terhubung ke server. Pastikan backend LaporKita berjalan."
       );
-    } catch {
-      existingUser = null;
+    } finally {
+      setLoading(false);
     }
-
-    const updatedUser = {
-      ...account,
-
-      username:
-        existingUser?.email === account.email &&
-        existingUser?.username
-          ? existingUser.username
-          : account.username,
-
-      profileImage:
-        existingUser?.email === account.email
-          ? existingUser?.profileImage ||
-            account.profileImage ||
-            ""
-          : account.profileImage || "",
-    };
-
-    localStorage.setItem(
-      "user",
-      JSON.stringify(updatedUser)
-    );
-
-    localStorage.setItem("isLoggedIn", "true");
-
-    window.dispatchEvent(new Event("userUpdated"));
-
-    alert(
-      `Login berhasil! Selamat datang, ${updatedUser.username}.`
-    );
-
-    window.location.href = "/";
   };
+
+  // ========================================
+  // TAMPILAN
+  // ========================================
 
   return (
     <main className="login-page">
+      {/* BACKGROUND */}
       <div className="login-background">
-        <div className="login-orb login-orb-one"></div>
-        <div className="login-orb login-orb-two"></div>
-        <div className="login-grid"></div>
+        <div className="login-grid" />
+
+        <div className="login-glow login-glow-one" />
+        <div className="login-glow login-glow-two" />
+
+        <div className="login-orb login-orb-one" />
+        <div className="login-orb login-orb-two" />
       </div>
 
+      {/* BACK BUTTON */}
+      <Link to="/" className="login-back">
+        <span>←</span>
+        Kembali ke Beranda
+      </Link>
+
+      {/* MAIN CONTAINER */}
       <div className="login-container">
+        {/* LEFT INTRO */}
         <section className="login-intro">
           <div className="login-label">
-            <span className="login-label-dot"></span>
+            <span className="login-label-dot" />
             AKSES LAPORKITA
           </div>
 
           <h1>
-            Siap menyampaikan laporan?
-            <span> Mari lanjutkan bersama Laporkita.</span>
+            Selamat datang
+            <span>kembali.</span>
           </h1>
 
           <p>
-            Silakan masuk ke akun Laporkita untuk melanjutkan
-            proses pelaporan. Dengan akun yang terdaftar, laporan
-            dapat terhubung dengan data pelapor sehingga
-            perkembangannya dapat dipantau dengan lebih baik.
+            Masuk ke akun kamu untuk memantau laporan, melihat perkembangan,
+            dan ikut berkontribusi menciptakan pelayanan publik yang lebih
+            baik.
           </p>
 
-          <div className="login-info">
-            <div className="login-info-item">
-              <div className="login-info-icon">✓</div>
+          <div className="login-features">
+            <div className="login-feature">
+              <div className="login-feature-icon">
+                <ShieldIcon />
+              </div>
 
               <div>
-                <strong>Data pelapor tercatat</strong>
-
+                <strong>Akun terlindungi</strong>
                 <span>
-                  Informasi akun terhubung dengan laporan yang
-                  disampaikan.
+                  Data akun dikelola melalui sistem autentikasi.
                 </span>
               </div>
             </div>
 
-            <div className="login-info-item">
-              <div className="login-info-icon">◉</div>
-
-              <div>
-                <strong>Pantau laporan</strong>
-
-                <span>
-                  Lihat perkembangan laporan yang telah kamu
-                  sampaikan.
-                </span>
+            <div className="login-feature">
+              <div className="login-feature-icon">
+                <LockIcon />
               </div>
-            </div>
-
-            <div className="login-info-item">
-              <div className="login-info-icon">↗</div>
 
               <div>
-                <strong>Pelaporan lebih terarah</strong>
-
-                <span>
-                  Setiap laporan memiliki informasi dan riwayat
-                  yang jelas.
-                </span>
+                <strong>Pelaporan lebih mudah</strong>
+                <span>Pantau laporan kamu kapan saja.</span>
               </div>
             </div>
           </div>
         </section>
 
+        {/* LOGIN CARD */}
         <section className="login-card">
-          <div className="login-card-header">
-            <div className="login-logo">LK</div>
+          <div className="login-card-top">
+            <div className="login-logo">
+              <img src={logoLaporKita} alt="LaporKita" />
+            </div>
 
             <div>
-              <h2>Selamat datang kembali</h2>
-
-              <p>
-                Silakan masuk untuk melanjutkan ke Laporkita.
-              </p>
+              <h2>Masuk ke akun</h2>
+              <p>Gunakan akun LaporKita kamu.</p>
             </div>
           </div>
 
-          <form className="login-form" onSubmit={handleLogin}>
-            <div className="form-group">
+          {/* ERROR MESSAGE */}
+          {error && (
+            <div className="login-error" role="alert">
+              <span>!</span>
+              {error}
+            </div>
+          )}
+
+          {/* FORM */}
+          <form className="login-form" onSubmit={handleSubmit}>
+            {/* EMAIL */}
+            <div className="login-field">
               <label htmlFor="email">Email</label>
 
-              <div className="input-wrapper">
-                <span className="input-icon">@</span>
+              <div className="login-input-wrapper">
+                <span className="login-input-icon">
+                  <MailIcon />
+                </span>
 
                 <input
                   id="email"
-                  name="email"
                   type="email"
-                  placeholder="Masukkan alamat email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="nama@email.com"
                   autoComplete="email"
+                  required
+                  disabled={loading}
                 />
               </div>
             </div>
 
-            <div className="form-group">
-              <div className="password-label">
+            {/* PASSWORD */}
+            <div className="login-field">
+              <div className="login-password-label">
                 <label htmlFor="password">Password</label>
 
-                <button
-                  type="button"
-                  className="forgot-password"
-                  onClick={() => {
-                    alert(
-                      "Fitur lupa password akan tersedia nanti."
-                    );
-                  }}
-                >
+                <Link to="/lupa-password" className="forgot-password">
                   Lupa password?
-                </button>
+                </Link>
               </div>
 
-              <div className="input-wrapper password-input-wrapper">
-                <span className="input-icon">•</span>
+              <div className="login-input-wrapper">
+                <span className="login-input-icon">
+                  <LockIcon />
+                </span>
 
                 <input
                   id="password"
-                  name="password"
                   type={showPassword ? "text" : "password"}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
                   placeholder="Masukkan password"
                   autoComplete="current-password"
+                  required
+                  disabled={loading}
                 />
 
                 <button
                   type="button"
-                  className="password-toggle"
-                  onClick={() =>
-                    setShowPassword((prev) => !prev)
-                  }
+                  className="login-password-toggle"
+                  onClick={() => setShowPassword(!showPassword)}
                   aria-label={
                     showPassword
                       ? "Sembunyikan password"
                       : "Tampilkan password"
                   }
                 >
-                  {showPassword ? (
-                    <svg
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      xmlns="http://www.w3.org/2000/svg"
-                    >
-                      <path
-                        d="M2.5 12C2.5 12 6 5.5 12 5.5C18 5.5 21.5 12 21.5 12C21.5 12 18 18.5 12 18.5C6 18.5 2.5 12 2.5 12Z"
-                        stroke="currentColor"
-                        strokeWidth="1.8"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      />
-
-                      <circle
-                        cx="12"
-                        cy="12"
-                        r="3"
-                        stroke="currentColor"
-                        strokeWidth="1.8"
-                      />
-                    </svg>
-                  ) : (
-                    <svg
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      xmlns="http://www.w3.org/2000/svg"
-                    >
-                      <path
-                        d="M3 3L21 21"
-                        stroke="currentColor"
-                        strokeWidth="1.8"
-                        strokeLinecap="round"
-                      />
-
-                      <path
-                        d="M10.5 5.8C11 5.6 11.5 5.5 12 5.5C18 5.5 21.5 12 21.5 12C21.5 12 20.2 14.4 18 16.2"
-                        stroke="currentColor"
-                        strokeWidth="1.8"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      />
-
-                      <path
-                        d="M6 7.2C3.7 9.1 2.5 12 2.5 12C2.5 12 6 18.5 12 18.5C13.4 18.5 14.7 18.2 15.8 17.7"
-                        stroke="currentColor"
-                        strokeWidth="1.8"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      />
-                    </svg>
-                  )}
+                  <EyeIcon visible={showPassword} />
                 </button>
               </div>
             </div>
 
-            <button type="submit" className="login-button">
-              <span>Lanjutkan</span>
-              <span className="login-arrow">→</span>
+            {/* SUBMIT */}
+            <button
+              type="submit"
+              className="login-submit-button"
+              disabled={loading}
+            >
+              <span>
+                {loading ? "Sedang masuk..." : "Masuk ke Akun"}
+              </span>
+
+              <span className="login-submit-arrow">
+                <ArrowIcon />
+              </span>
             </button>
           </form>
 
-          <div className="login-divider">
-            <span>atau</span>
+          {/* REGISTER */}
+          <div className="login-register">
+            <span>Belum punya akun?</span>
+            <Link to="/register">Daftar sekarang</Link>
           </div>
 
-          <div className="register-text">
-            <span>Belum memiliki akun?</span>
+          {/* ADMIN LOGIN */}
+          <div className="login-admin">
+            <div className="login-admin-line" />
 
-            <a
-              href="/register"
-              className="register-link"
-            >
-              Buat akun sekarang
-            </a>
-          </div>
-
-          {/* ================================
-              ADMIN ACCESS
-          ================================= */}
-
-          <div className="admin-access">
             <button
               type="button"
-              className="admin-access-button"
               onClick={() => navigate("/admin-login")}
             >
-              <span className="admin-access-icon">
-                <svg
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  xmlns="http://www.w3.org/2000/svg"
-                >
-                  <path
-                    d="M12 3L19 6V11C19 15.5 16.1 19.5 12 21C7.9 19.5 5 15.5 5 11V6L12 3Z"
-                    stroke="currentColor"
-                    strokeWidth="1.8"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-
-                  <path
-                    d="M9.5 12L11.2 13.7L14.8 10.1"
-                    stroke="currentColor"
-                    strokeWidth="1.8"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                </svg>
+              <span className="login-admin-icon">
+                <ShieldIcon />
               </span>
 
               <span>Akses Administrator</span>
 
-              <span className="admin-access-arrow">
-                →
-              </span>
+              <span className="login-admin-arrow">→</span>
             </button>
           </div>
         </section>
       </div>
 
-      <div className="login-footer">
-        Laporkita · Bersama menyampaikan informasi untuk
-        lingkungan yang lebih baik.
-      </div>
+      {/* FOOTER */}
+      <footer className="login-footer">
+        © 2026 LaporKita · Pelayanan Publik Digital
+      </footer>
     </main>
   );
 }

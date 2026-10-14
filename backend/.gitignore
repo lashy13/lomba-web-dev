@@ -1,0 +1,22 @@
+# File konfigurasi rahasia
+.env
+.env.*
+!.env.example
+
+# Dependensi Node.js
+node_modules/
+
+# Sertifikat lokal
+certs/
+
+# File unggahan pengguna
+uploads/
+
+# Log
+npm-debug.log*
+yarn-debug.log*
+*.log
+
+# File sistem operasi
+.DS_Store
+Thumbs.db
