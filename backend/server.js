@@ -27,7 +27,7 @@ const { verifyToken } = require("./middleware/authMiddleware");
 const app = express();
 const PORT = Number(process.env.PORT) || 5000;
 
-const BACKEND_VERSION = "delete-report-v1";
+const BACKEND_VERSION = "delete-report-v2";
 
 console.log(`LAPORKITA_BACKEND_VERSION: ${BACKEND_VERSION}`);
 
@@ -54,12 +54,10 @@ app.use(
       console.warn("CORS blocked origin:", origin);
 
       return callback(
-        new Error("Origin tidak diizinkan oleh CORS."),
+        new Error("Origin tidak diizinkan oleh CORS.")
       );
     },
-
     credentials: true,
-
     methods: [
       "GET",
       "POST",
@@ -68,12 +66,11 @@ app.use(
       "DELETE",
       "OPTIONS",
     ],
-
     allowedHeaders: [
       "Content-Type",
       "Authorization",
     ],
-  }),
+  })
 );
 
 // ========================================
@@ -170,8 +167,8 @@ app.use("/api/categories", categoryRoutes);
 // REPORT ROUTES
 // ========================================
 
-// Route DELETE /api/reports/:id didaftarkan
-// melalui backend/routes/reportRoutes.js.
+// Mendaftarkan GET, POST, PATCH, dan DELETE laporan.
+// Pastikan reportRoutes mengekspor router Express yang benar.
 app.use("/api/reports", reportRoutes);
 
 // ========================================
@@ -241,26 +238,24 @@ app.use((error, req, res, next) => {
 // START SERVER
 // ========================================
 
-const server = app.listen(PORT, "0.0.0.0", () => {
-  console.log("------------------------------------");
-  console.log("LaporKita API berhasil dijalankan.");
-  console.log(`Port: ${PORT}`);
-  console.log(`Backend version: ${BACKEND_VERSION}`);
-  console.log(`Allowed origins: ${allowedOrigins.join(", ")}`);
-  console.log("------------------------------------");
-});
+if (require.main === module) {
+  const server = app.listen(PORT, "0.0.0.0", () => {
+    console.log("------------------------------------");
+    console.log("LaporKita API berhasil dijalankan.");
+    console.log(`Port: ${PORT}`);
+    console.log(`Backend version: ${BACKEND_VERSION}`);
+    console.log(`Allowed origins: ${allowedOrigins.join(", ")}`);
+    console.log("------------------------------------");
+  });
 
-// ========================================
-// SERVER ERROR HANDLER
-// ========================================
+  server.on("error", (error) => {
+    console.error("SERVER ERROR:", error.message);
 
-server.on("error", (error) => {
-  console.error("SERVER ERROR:", error.message);
-
-  if (error.code === "EADDRINUSE") {
-    console.error(`Port ${PORT} sedang digunakan.`);
-  }
-});
+    if (error.code === "EADDRINUSE") {
+      console.error(`Port ${PORT} sedang digunakan.`);
+    }
+  });
+}
 
 // ========================================
 // UNEXPECTED ASYNC ERRORS
