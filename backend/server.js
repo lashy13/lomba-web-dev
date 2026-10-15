@@ -25,7 +25,7 @@ const { verifyToken } = require("./middleware/authMiddleware");
 
 const app = express();
 const PORT = Number(process.env.PORT) || 5000;
-
+console.log("LAPORKITA_BACKEND_VERSION: cloudinary-check-1");
 // ========================================
 // CORS CONFIGURATION
 // ========================================
