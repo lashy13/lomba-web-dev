@@ -3,6 +3,7 @@
 const express = require("express");
 const cors = require("cors");
 const path = require("path");
+const fs = require("fs");
 require("dotenv").config();
 
 const db = require("./config/database");
@@ -18,12 +19,6 @@ const reportRoutes = require("./routes/reportRoutes");
 const notificationRoutes = require("./routes/notificationRoutes");
 
 // ========================================
-// IMPORT MIDDLEWARE
-// ========================================
-
-const { verifyToken } = require("./middleware/authMiddleware");
-
-// ========================================
 // INITIALIZE EXPRESS
 // ========================================
 
@@ -31,7 +26,22 @@ const app = express();
 const PORT = Number(process.env.PORT) || 5000;
 
 // ========================================
-// ALLOWED FRONTEND ORIGINS
+// UPLOAD DIRECTORY
+// ========================================
+
+// Folder penyimpanan foto profil.
+// Pastikan folder ini berada di lokasi yang persisten
+// pada platform hosting yang kamu gunakan.
+const profileUploadDir = path.join(
+  __dirname,
+  "uploads",
+  "profiles"
+);
+
+fs.mkdirSync(profileUploadDir, { recursive: true });
+
+// ========================================
+// CORS CONFIGURATION
 // ========================================
 
 const allowedOrigins = [
@@ -43,14 +53,9 @@ const allowedOrigins = [
     .filter(Boolean),
 ];
 
-// ========================================
-// CORS CONFIGURATION
-// ========================================
-
 app.use(
   cors({
     origin(origin, callback) {
-      // Allow requests without an Origin header.
       if (!origin || allowedOrigins.includes(origin)) {
         return callback(null, true);
       }
@@ -73,12 +78,20 @@ app.use(express.json({ limit: "5mb" }));
 app.use(express.urlencoded({ extended: true }));
 
 // ========================================
-// STATIC FILES
+// STATIC PROFILE IMAGES
 // ========================================
+
+// Contoh URL:
+// https://domain-backend/uploads/profiles/nama-file.png
 
 app.use(
   "/uploads/profiles",
-  express.static(path.join(__dirname, "uploads", "profiles"))
+  express.static(profileUploadDir, {
+    dotfiles: "deny",
+    index: false,
+    fallthrough: true,
+    maxAge: "1d",
+  })
 );
 
 // ========================================
@@ -118,7 +131,6 @@ app.get("/api/test-db", async (req, res) => {
       data: rows,
     });
   } catch (error) {
-    // Log detailed diagnostics on the server only.
     console.error("DATABASE ERROR:", {
       code: error.code,
       errno: error.errno,
@@ -148,6 +160,8 @@ app.use("/api/auth/forgot-password", passwordResetRoutes);
 // ========================================
 // CURRENT USER
 // ========================================
+
+const { verifyToken } = require("./middleware/authMiddleware");
 
 app.get("/api/auth/me", verifyToken, (req, res) => {
   return res.status(200).json({
@@ -229,6 +243,7 @@ const server = app.listen(PORT, "0.0.0.0", () => {
   console.log("LaporKita API berhasil dijalankan.");
   console.log(`Port: ${PORT}`);
   console.log(`Allowed origins: ${allowedOrigins.join(", ")}`);
+  console.log(`Profile upload directory: ${profileUploadDir}`);
   console.log("------------------------------------");
 });
 
@@ -240,9 +255,7 @@ server.on("error", (error) => {
   console.error("SERVER ERROR:", error.message);
 
   if (error.code === "EADDRINUSE") {
-    console.error(
-      `Port ${PORT} sedang digunakan. Periksa proses yang memakai port tersebut.`
-    );
+    console.error(`Port ${PORT} sedang digunakan.`);
   }
 });
 
