@@ -3,14 +3,14 @@ FROM node:22-alpine
 
 WORKDIR /app
 
-COPY package*.json ./
+COPY backend/package.json backend/package-lock.json ./
 
-RUN npm ci --omit=dev
+RUN npm install --omit=dev
 
-COPY . .
+COPY backend/ ./
 
 ENV NODE_ENV=production
 
 EXPOSE 5000
 
-CMD ["npm", "start"]
+CMD ["node", "server.js"]
