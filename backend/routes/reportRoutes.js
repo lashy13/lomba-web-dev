@@ -1,5 +1,4 @@
-/* global require, module */
-
+/* global require, module  */
 const express = require("express");
 
 const {
@@ -22,19 +21,13 @@ const {
 
 const router = express.Router();
 
-// ========================================
-// GET SEMUA LAPORAN PUBLIK
-// ========================================
+// GET semua laporan publik
 router.get("/", getReports);
 
-// ========================================
-// GET LAPORAN MILIK PENGGUNA
-// ========================================
+// GET laporan milik pengguna yang sedang login
 router.get("/my-reports", verifyToken, getMyReports);
 
-// ========================================
-// ADMIN: GET STATISTIK LAPORAN
-// ========================================
+// ADMIN: statistik laporan
 router.get(
   "/admin/stats",
   verifyToken,
@@ -42,9 +35,7 @@ router.get(
   getReportStats
 );
 
-// ========================================
-// ADMIN: GET SEMUA LAPORAN
-// ========================================
+// ADMIN: semua laporan
 router.get(
   "/admin/reports",
   verifyToken,
@@ -52,9 +43,7 @@ router.get(
   getAdminReports
 );
 
-// ========================================
-// ADMIN: UPDATE STATUS LAPORAN
-// ========================================
+// ADMIN: memperbarui status laporan
 router.patch(
   "/:id/status",
   verifyToken,
@@ -62,40 +51,28 @@ router.patch(
   updateReportStatus
 );
 
-// ========================================
-// HAPUS LAPORAN
-// Pemilik hanya bisa menghapus laporan berstatus Menunggu.
-// Admin bisa menghapus laporan dengan status apa pun.
-// ========================================
-router.delete(
-  "/:id",
-  verifyToken,
-  deleteReport
-);
+// DELETE laporan
+// Pemilik hanya boleh menghapus laporan berstatus Menunggu.
+// Admin dapat menghapus laporan dengan status apa pun.
+router.delete("/:id", verifyToken, (req, res, next) => {
+  console.log("[DELETE REPORT] Route terpanggil:", req.params.id);
+  next();
+}, deleteReport);
 
-// ========================================
-// GET RIWAYAT STATUS LAPORAN
-// ========================================
+// GET riwayat status laporan
 router.get("/:id/timeline", getReportTimeline);
 
-// ========================================
-// GET DETAIL PRIVAT LAPORAN
-// Hanya pemilik laporan atau admin
-// ========================================
+// GET detail privat laporan
 router.get(
   "/:id/private",
   verifyToken,
   getPrivateReportById
 );
 
-// ========================================
-// GET DETAIL PUBLIK LAPORAN
-// ========================================
+// GET detail publik laporan
 router.get("/:id", getReportById);
 
-// ========================================
-// CREATE REPORT
-// ========================================
+// CREATE laporan
 router.post("/", verifyToken, createReport);
 
 module.exports = router;

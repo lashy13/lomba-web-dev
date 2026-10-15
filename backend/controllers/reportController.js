@@ -1,3 +1,4 @@
+
 /* global require, module, Buffer */
 
 const db = require("../config/database");
@@ -18,16 +19,15 @@ function validatePhoto(photo) {
     };
   }
 
-  const photoPattern =
+  const pattern =
     /^data:image\/(jpeg|jpg|png|webp);base64,([A-Za-z0-9+/]+={0,2})$/;
 
-  const match = photo.match(photoPattern);
+  const match = photo.match(pattern);
 
   if (!match) {
     return {
       valid: false,
-      message:
-        "Foto harus berupa gambar JPEG, PNG, atau WebP dalam format Base64.",
+      message: "Foto harus berupa gambar JPEG, PNG, atau WebP dalam format Base64.",
     };
   }
 
@@ -35,20 +35,14 @@ function validatePhoto(photo) {
   const base64Data = match[2];
   const imageBuffer = Buffer.from(base64Data, "base64");
 
-  if (imageBuffer.length > 2 * 1024 * 1024) {
-    return {
-      valid: false,
-      message: "Ukuran foto maksimal 2 MB.",
-    };
-  }
-
   if (
     imageBuffer.length === 0 ||
+    imageBuffer.length > 2 * 1024 * 1024 ||
     imageBuffer.toString("base64") !== base64Data
   ) {
     return {
       valid: false,
-      message: "Data foto tidak valid.",
+      message: "Data foto tidak valid atau ukurannya melebihi 2 MB.",
     };
   }
 
@@ -60,14 +54,12 @@ function validatePhoto(photo) {
 
   const isPng =
     imageBuffer.length >= 8 &&
-    imageBuffer
-      .subarray(0, 8)
-      .equals(
-        Buffer.from([
-          0x89, 0x50, 0x4e, 0x47,
-          0x0d, 0x0a, 0x1a, 0x0a,
-        ])
-      );
+    imageBuffer.subarray(0, 8).equals(
+      Buffer.from([
+        0x89, 0x50, 0x4e, 0x47,
+        0x0d, 0x0a, 0x1a, 0x0a,
+      ])
+    );
 
   const isWebp =
     imageBuffer.length >= 12 &&
@@ -82,15 +74,11 @@ function validatePhoto(photo) {
   if (!validImage) {
     return {
       valid: false,
-      message:
-        "Isi foto tidak sesuai dengan format gambar yang dinyatakan.",
+      message: "Isi foto tidak sesuai dengan format gambar yang dinyatakan.",
     };
   }
 
-  return {
-    valid: true,
-    photo,
-  };
+  return { valid: true, photo };
 }
 
 // ========================================
@@ -100,25 +88,11 @@ function validatePhoto(photo) {
 function parseReportId(value) {
   const id = Number(value);
 
-  return Number.isSafeInteger(id) && id > 0
-    ? id
-    : null;
+  return Number.isSafeInteger(id) && id > 0 ? id : null;
 }
 
 // ========================================
-// HELPER: VALIDASI TEKS OPSIONAL
-// ========================================
-
-function isOptionalString(value) {
-  return (
-    value === undefined ||
-    value === null ||
-    typeof value === "string"
-  );
-}
-
-// ========================================
-// HELPER: MEMBUAT NOTIFIKASI
+// HELPER: NOTIFIKASI
 // ========================================
 
 async function createNotification(
@@ -133,14 +107,9 @@ async function createNotification(
   }
 ) {
   await connection.query(
-    `INSERT INTO notifications (
-      user_id,
-      report_id,
-      title,
-      message,
-      type,
-      note
-    ) VALUES (?, ?, ?, ?, ?, ?)`,
+    `INSERT INTO notifications
+      (user_id, report_id, title, message, type, note)
+     VALUES (?, ?, ?, ?, ?, ?)`,
     [userId, reportId, title, message, type, note]
   );
 }
@@ -151,6 +120,7 @@ async function createNotification(
 
 async function createReport(req, res) {
   let connection;
+  let transactionStarted = false;
 
   try {
     const {
@@ -199,7 +169,10 @@ async function createReport(req, res) {
       });
     }
 
-    if (!Number.isSafeInteger(categoryId) || categoryId < 1) {
+    if (
+      !Number.isSafeInteger(categoryId) ||
+      categoryId < 1
+    ) {
       return res.status(400).json({
         success: false,
         message: "Kategori tidak valid.",
@@ -221,7 +194,11 @@ async function createReport(req, res) {
     };
 
     for (const [field, value] of Object.entries(optionalFields)) {
-      if (!isOptionalString(value)) {
+      if (
+        value !== undefined &&
+        value !== null &&
+        typeof value !== "string"
+      ) {
         return res.status(400).json({
           success: false,
           message: `Format ${field} tidak valid.`,
@@ -232,34 +209,28 @@ async function createReport(req, res) {
     if (photo_name && photo_name.length > 255) {
       return res.status(400).json({
         success: false,
-        message: "Nama file foto maksimal 255 karakter.",
+        message: "Nama foto maksimal 255 karakter.",
       });
     }
 
-    const photoValidation = validatePhoto(photo);
+    const photoResult = validatePhoto(photo);
 
-    if (!photoValidation.valid) {
+    if (!photoResult.valid) {
       return res.status(400).json({
         success: false,
-        message: photoValidation.message,
+        message: photoResult.message,
       });
     }
 
-    const cleanPhoto = photoValidation.photo;
-
+    const cleanPhoto = photoResult.photo;
     const cleanPhotoName = cleanPhoto
       ? photo_name?.trim() || "foto-laporan"
       : null;
 
     const hasLatitude =
-      latitude !== undefined &&
-      latitude !== null &&
-      latitude !== "";
-
+      latitude !== undefined && latitude !== null && latitude !== "";
     const hasLongitude =
-      longitude !== undefined &&
-      longitude !== null &&
-      longitude !== "";
+      longitude !== undefined && longitude !== null && longitude !== "";
 
     if (hasLatitude !== hasLongitude) {
       return res.status(400).json({
@@ -290,8 +261,16 @@ async function createReport(req, res) {
       }
     }
 
+    if (!req.user || !req.user.id) {
+      return res.status(401).json({
+        success: false,
+        message: "Silakan login terlebih dahulu.",
+      });
+    }
+
     connection = await db.getConnection();
     await connection.beginTransaction();
+    transactionStarted = true;
 
     const [categories] = await connection.query(
       "SELECT id FROM categories WHERE id = ? LIMIT 1",
@@ -300,6 +279,7 @@ async function createReport(req, res) {
 
     if (categories.length === 0) {
       await connection.rollback();
+      transactionStarted = false;
 
       return res.status(400).json({
         success: false,
@@ -309,29 +289,14 @@ async function createReport(req, res) {
 
     const [result] = await connection.query(
       `INSERT INTO reports (
-        user_id,
-        category_id,
-        title,
-        description,
-        province_id,
-        province_name,
-        regency_id,
-        regency_name,
-        district_id,
-        district_name,
-        village_id,
-        village_name,
-        address,
-        location_detail,
-        latitude,
-        longitude,
-        photo,
-        photo_name,
-        status
-      ) VALUES (
-        ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
-        ?, ?, ?, ?, ?, ?, ?, ?, ?
-      )`,
+        user_id, category_id, title, description,
+        province_id, province_name,
+        regency_id, regency_name,
+        district_id, district_name,
+        village_id, village_name,
+        address, location_detail,
+        latitude, longitude, photo, photo_name, status
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         req.user.id,
         categoryId,
@@ -358,11 +323,8 @@ async function createReport(req, res) {
     const reportId = result.insertId;
 
     await connection.query(
-      `INSERT INTO report_timeline (
-        report_id,
-        status,
-        note
-      ) VALUES (?, ?, ?)`,
+      `INSERT INTO report_timeline (report_id, status, note)
+       VALUES (?, ?, ?)`,
       [reportId, "Menunggu", "Laporan berhasil dibuat."]
     );
 
@@ -371,13 +333,12 @@ async function createReport(req, res) {
       reportId,
       title: "Laporan Berhasil Dikirim",
       message:
-        `Laporan "${cleanTitle}" berhasil dikirim ` +
-        "dan sedang menunggu verifikasi.",
+        `Laporan "${cleanTitle}" berhasil dikirim dan sedang menunggu verifikasi.`,
       type: "success",
-      note: null,
     });
 
     await connection.commit();
+    transactionStarted = false;
 
     return res.status(201).json({
       success: true,
@@ -392,7 +353,7 @@ async function createReport(req, res) {
       },
     });
   } catch (error) {
-    if (connection) {
+    if (connection && transactionStarted) {
       try {
         await connection.rollback();
       } catch (rollbackError) {
@@ -400,16 +361,14 @@ async function createReport(req, res) {
       }
     }
 
-    console.error("CREATE REPORT ERROR:", error.message);
+    console.error("CREATE REPORT ERROR:", error);
 
     return res.status(500).json({
       success: false,
       message: "Terjadi kesalahan saat membuat laporan.",
     });
   } finally {
-    if (connection) {
-      connection.release();
-    }
+    if (connection) connection.release();
   }
 }
 
@@ -421,21 +380,14 @@ async function getReports(req, res) {
   try {
     const [reports] = await db.query(
       `SELECT
-        r.id,
-        r.category_id,
-        c.name AS category_name,
-        r.title,
-        r.description,
-        r.province_name,
-        r.regency_name,
-        r.district_name,
-        r.village_name,
-        r.status,
-        r.created_at,
-        r.updated_at
-      FROM reports r
-      LEFT JOIN categories c ON r.category_id = c.id
-      ORDER BY r.created_at DESC, r.id DESC`
+        r.id, r.category_id, c.name AS category_name,
+        r.title, r.description,
+        r.province_name, r.regency_name,
+        r.district_name, r.village_name,
+        r.status, r.created_at, r.updated_at
+       FROM reports r
+       LEFT JOIN categories c ON r.category_id = c.id
+       ORDER BY r.created_at DESC, r.id DESC`
     );
 
     return res.status(200).json({
@@ -445,7 +397,7 @@ async function getReports(req, res) {
       data: reports,
     });
   } catch (error) {
-    console.error("GET REPORTS ERROR:", error.message);
+    console.error("GET REPORTS ERROR:", error);
 
     return res.status(500).json({
       success: false,
@@ -462,28 +414,17 @@ async function getMyReports(req, res) {
   try {
     const [reports] = await db.query(
       `SELECT
-        r.id,
-        r.category_id,
-        c.name AS category_name,
-        r.title,
-        r.description,
-        r.province_name,
-        r.regency_name,
-        r.district_name,
-        r.village_name,
-        r.address,
-        r.location_detail,
-        r.latitude,
-        r.longitude,
-        r.photo_name,
-        r.status,
-        r.admin_note,
-        r.created_at,
-        r.updated_at
-      FROM reports r
-      LEFT JOIN categories c ON r.category_id = c.id
-      WHERE r.user_id = ?
-      ORDER BY r.created_at DESC, r.id DESC`,
+        r.id, r.category_id, c.name AS category_name,
+        r.title, r.description,
+        r.province_name, r.regency_name,
+        r.district_name, r.village_name,
+        r.address, r.location_detail,
+        r.latitude, r.longitude, r.photo_name,
+        r.status, r.admin_note, r.created_at, r.updated_at
+       FROM reports r
+       LEFT JOIN categories c ON r.category_id = c.id
+       WHERE r.user_id = ?
+       ORDER BY r.created_at DESC, r.id DESC`,
       [req.user.id]
     );
 
@@ -494,7 +435,7 @@ async function getMyReports(req, res) {
       data: reports,
     });
   } catch (error) {
-    console.error("GET MY REPORTS ERROR:", error.message);
+    console.error("GET MY REPORTS ERROR:", error);
 
     return res.status(500).json({
       success: false,
@@ -520,26 +461,19 @@ async function getReportById(req, res) {
 
     const [reports] = await db.query(
       `SELECT
-        r.id,
-        r.category_id,
-        c.name AS category_name,
-        r.title,
-        r.description,
-        r.province_name,
-        r.regency_name,
-        r.district_name,
-        r.village_name,
-        r.status,
-        r.created_at,
-        r.updated_at
-      FROM reports r
-      LEFT JOIN categories c ON r.category_id = c.id
-      WHERE r.id = ?
-      LIMIT 1`,
+        r.id, r.category_id, c.name AS category_name,
+        r.title, r.description,
+        r.province_name, r.regency_name,
+        r.district_name, r.village_name,
+        r.status, r.created_at, r.updated_at
+       FROM reports r
+       LEFT JOIN categories c ON r.category_id = c.id
+       WHERE r.id = ?
+       LIMIT 1`,
       [reportId]
     );
 
-    if (reports.length === 0) {
+    if (!reports.length) {
       return res.status(404).json({
         success: false,
         message: "Laporan tidak ditemukan.",
@@ -552,7 +486,7 @@ async function getReportById(req, res) {
       data: reports[0],
     });
   } catch (error) {
-    console.error("GET REPORT BY ID ERROR:", error.message);
+    console.error("GET REPORT BY ID ERROR:", error);
 
     return res.status(500).json({
       success: false,
@@ -578,38 +512,25 @@ async function getPrivateReportById(req, res) {
 
     const [reports] = await db.query(
       `SELECT
-        r.id,
-        r.user_id,
-        r.category_id,
+        r.id, r.user_id, r.category_id,
         c.name AS category_name,
-        r.title,
-        r.description,
-        r.province_id,
-        r.province_name,
-        r.regency_id,
-        r.regency_name,
-        r.district_id,
-        r.district_name,
-        r.village_id,
-        r.village_name,
-        r.address,
-        r.location_detail,
-        r.latitude,
-        r.longitude,
-        r.photo,
-        r.photo_name,
-        r.status,
-        r.admin_note,
-        r.created_at,
-        r.updated_at
-      FROM reports r
-      LEFT JOIN categories c ON r.category_id = c.id
-      WHERE r.id = ?
-      LIMIT 1`,
+        r.title, r.description,
+        r.province_id, r.province_name,
+        r.regency_id, r.regency_name,
+        r.district_id, r.district_name,
+        r.village_id, r.village_name,
+        r.address, r.location_detail,
+        r.latitude, r.longitude,
+        r.photo, r.photo_name, r.status,
+        r.admin_note, r.created_at, r.updated_at
+       FROM reports r
+       LEFT JOIN categories c ON r.category_id = c.id
+       WHERE r.id = ?
+       LIMIT 1`,
       [reportId]
     );
 
-    if (reports.length === 0) {
+    if (!reports.length) {
       return res.status(404).json({
         success: false,
         message: "Laporan tidak ditemukan.",
@@ -617,16 +538,14 @@ async function getPrivateReportById(req, res) {
     }
 
     const report = reports[0];
-
-    const isOwner =
-      Number(report.user_id) === Number(req.user.id);
-
-    const isAdmin = req.user.role === "admin";
+    const isOwner = Number(report.user_id) === Number(req.user.id);
+    const isAdmin =
+      String(req.user.role || "").toLowerCase() === "admin";
 
     if (!isOwner && !isAdmin) {
       return res.status(403).json({
         success: false,
-        message: "Kamu tidak memiliki akses ke detail laporan ini.",
+        message: "Kamu tidak memiliki akses ke laporan ini.",
       });
     }
 
@@ -636,7 +555,7 @@ async function getPrivateReportById(req, res) {
       data: report,
     });
   } catch (error) {
-    console.error("GET PRIVATE REPORT ERROR:", error.message);
+    console.error("GET PRIVATE REPORT ERROR:", error);
 
     return res.status(500).json({
       success: false,
@@ -665,7 +584,7 @@ async function getReportTimeline(req, res) {
       [reportId]
     );
 
-    if (reports.length === 0) {
+    if (!reports.length) {
       return res.status(404).json({
         success: false,
         message: "Laporan tidak ditemukan.",
@@ -687,45 +606,34 @@ async function getReportTimeline(req, res) {
       data: timeline,
     });
   } catch (error) {
-    console.error("GET REPORT TIMELINE ERROR:", error.message);
+    console.error("GET REPORT TIMELINE ERROR:", error);
 
     return res.status(500).json({
       success: false,
-      message: "Gagal mengambil riwayat status laporan.",
+      message: "Gagal mengambil riwayat laporan.",
     });
   }
 }
 
 // ========================================
-// ADMIN: GET SEMUA LAPORAN
+// ADMIN: GET ALL REPORTS
 // ========================================
 
 async function getAdminReports(req, res) {
   try {
     const [reports] = await db.query(
       `SELECT
-        r.id,
-        r.user_id,
-        r.category_id,
+        r.id, r.user_id, r.category_id,
         c.name AS category_name,
-        r.title,
-        r.description,
-        r.province_name,
-        r.regency_name,
-        r.district_name,
-        r.village_name,
-        r.address,
-        r.location_detail,
-        r.latitude,
-        r.longitude,
-        r.photo_name,
-        r.status,
-        r.admin_note,
-        r.created_at,
-        r.updated_at
-      FROM reports r
-      LEFT JOIN categories c ON r.category_id = c.id
-      ORDER BY r.created_at DESC, r.id DESC`
+        r.title, r.description,
+        r.province_name, r.regency_name,
+        r.district_name, r.village_name,
+        r.address, r.location_detail,
+        r.latitude, r.longitude, r.photo_name,
+        r.status, r.admin_note, r.created_at, r.updated_at
+       FROM reports r
+       LEFT JOIN categories c ON r.category_id = c.id
+       ORDER BY r.created_at DESC, r.id DESC`
     );
 
     return res.status(200).json({
@@ -735,11 +643,11 @@ async function getAdminReports(req, res) {
       data: reports,
     });
   } catch (error) {
-    console.error("GET ADMIN REPORTS ERROR:", error.message);
+    console.error("GET ADMIN REPORTS ERROR:", error);
 
     return res.status(500).json({
       success: false,
-      message: "Gagal mengambil data laporan admin.",
+      message: "Gagal mengambil laporan admin.",
     });
   }
 }
@@ -750,6 +658,7 @@ async function getAdminReports(req, res) {
 
 async function updateReportStatus(req, res) {
   let connection;
+  let transactionStarted = false;
 
   try {
     const reportId = parseReportId(req.params.id);
@@ -803,6 +712,7 @@ async function updateReportStatus(req, res) {
 
     connection = await db.getConnection();
     await connection.beginTransaction();
+    transactionStarted = true;
 
     const [reports] = await connection.query(
       `SELECT id, user_id, title, status
@@ -812,8 +722,9 @@ async function updateReportStatus(req, res) {
       [reportId]
     );
 
-    if (reports.length === 0) {
+    if (!reports.length) {
       await connection.rollback();
+      transactionStarted = false;
 
       return res.status(404).json({
         success: false,
@@ -821,14 +732,15 @@ async function updateReportStatus(req, res) {
       });
     }
 
-    const currentReport = reports[0];
+    const report = reports[0];
 
-    if (currentReport.status === status) {
+    if (report.status === status) {
       await connection.rollback();
+      transactionStarted = false;
 
       return res.status(400).json({
         success: false,
-        message: "Status laporan sudah sama dengan status sebelumnya.",
+        message: "Status laporan sudah sama.",
       });
     }
 
@@ -849,24 +761,23 @@ async function updateReportStatus(req, res) {
       ]
     );
 
-    const notificationMessages = {
+    const messages = {
       Diverifikasi: "telah diverifikasi oleh admin.",
       "Dalam Proses": "sedang dalam proses penanganan.",
       Selesai: "telah selesai ditangani.",
     };
 
     await createNotification(connection, {
-      userId: currentReport.user_id,
+      userId: report.user_id,
       reportId,
       title: `Status Laporan: ${status}`,
-      message:
-        `Laporan "${currentReport.title}" ` +
-        notificationMessages[status],
+      message: `Laporan "${report.title}" ${messages[status]}`,
       type: status === "Selesai" ? "success" : "info",
       note: cleanNote,
     });
 
     await connection.commit();
+    transactionStarted = false;
 
     return res.status(200).json({
       success: true,
@@ -878,7 +789,7 @@ async function updateReportStatus(req, res) {
       },
     });
   } catch (error) {
-    if (connection) {
+    if (connection && transactionStarted) {
       try {
         await connection.rollback();
       } catch (rollbackError) {
@@ -886,21 +797,19 @@ async function updateReportStatus(req, res) {
       }
     }
 
-    console.error("UPDATE REPORT STATUS ERROR:", error.message);
+    console.error("UPDATE REPORT STATUS ERROR:", error);
 
     return res.status(500).json({
       success: false,
       message: "Gagal memperbarui status laporan.",
     });
   } finally {
-    if (connection) {
-      connection.release();
-    }
+    if (connection) connection.release();
   }
 }
 
 // ========================================
-// ADMIN: GET REPORT STATISTICS
+// ADMIN: REPORT STATISTICS
 // ========================================
 
 async function getReportStats(req, res) {
@@ -912,7 +821,7 @@ async function getReportStats(req, res) {
         SUM(CASE WHEN status = 'Diverifikasi' THEN 1 ELSE 0 END) AS diverifikasi,
         SUM(CASE WHEN status = 'Dalam Proses' THEN 1 ELSE 0 END) AS dalam_proses,
         SUM(CASE WHEN status = 'Selesai' THEN 1 ELSE 0 END) AS selesai
-      FROM reports`
+       FROM reports`
     );
 
     const stats = rows[0];
@@ -929,7 +838,7 @@ async function getReportStats(req, res) {
       },
     });
   } catch (error) {
-    console.error("GET REPORT STATS ERROR:", error.message);
+    console.error("GET REPORT STATS ERROR:", error);
 
     return res.status(500).json({
       success: false,
@@ -940,12 +849,13 @@ async function getReportStats(req, res) {
 
 // ========================================
 // DELETE REPORT
-// PEMILIK: HANYA STATUS MENUNGGU
-// ADMIN: SEMUA STATUS
+// Pemilik: hanya status Menunggu
+// Admin: semua status
 // ========================================
 
 async function deleteReport(req, res) {
   let connection;
+  let transactionStarted = false;
 
   try {
     const reportId = parseReportId(req.params.id);
@@ -957,8 +867,16 @@ async function deleteReport(req, res) {
       });
     }
 
+    if (!req.user || !req.user.id) {
+      return res.status(401).json({
+        success: false,
+        message: "Silakan login terlebih dahulu.",
+      });
+    }
+
     connection = await db.getConnection();
     await connection.beginTransaction();
+    transactionStarted = true;
 
     const [reports] = await connection.query(
       `SELECT id, user_id, title, status
@@ -968,8 +886,9 @@ async function deleteReport(req, res) {
       [reportId]
     );
 
-    if (reports.length === 0) {
+    if (!reports.length) {
       await connection.rollback();
+      transactionStarted = false;
 
       return res.status(404).json({
         success: false,
@@ -982,10 +901,12 @@ async function deleteReport(req, res) {
     const isOwner =
       Number(report.user_id) === Number(req.user.id);
 
-    const isAdmin = req.user.role === "admin";
+    const isAdmin =
+      String(req.user.role || "").toLowerCase() === "admin";
 
     if (!isOwner && !isAdmin) {
       await connection.rollback();
+      transactionStarted = false;
 
       return res.status(403).json({
         success: false,
@@ -995,51 +916,65 @@ async function deleteReport(req, res) {
 
     if (!isAdmin && report.status !== "Menunggu") {
       await connection.rollback();
+      transactionStarted = false;
 
       return res.status(400).json({
         success: false,
-        message:
-          "Laporan yang sudah diverifikasi atau diproses tidak dapat dihapus oleh pengguna.",
+        message: "Laporan hanya dapat dihapus ketika berstatus Menunggu.",
       });
     }
 
-    // report_timeline akan terhapus otomatis karena ON DELETE CASCADE.
-    // notifications tetap ada dan report_id menjadi NULL.
-    await connection.query(
+    const [result] = await connection.query(
       "DELETE FROM reports WHERE id = ?",
       [reportId]
     );
 
+    if (result.affectedRows !== 1) {
+      await connection.rollback();
+      transactionStarted = false;
+
+      return res.status(409).json({
+        success: false,
+        message: "Laporan gagal dihapus.",
+      });
+    }
+
     await connection.commit();
+    transactionStarted = false;
+
+    console.log(
+      `[DELETE REPORT] Laporan ${reportId} berhasil dihapus oleh user ${req.user.id}`
+    );
 
     return res.status(200).json({
       success: true,
       message: "Laporan berhasil dihapus.",
+      data: {
+        id: reportId,
+      },
     });
   } catch (error) {
-    if (connection) {
+    if (connection && transactionStarted) {
       try {
         await connection.rollback();
       } catch (rollbackError) {
-        console.error("ROLLBACK ERROR:", rollbackError.message);
+        console.error("ROLLBACK DELETE REPORT ERROR:", rollbackError.message);
       }
     }
 
-    console.error("DELETE REPORT ERROR:", error.message);
+    console.error("DELETE REPORT ERROR:", error);
 
     return res.status(500).json({
       success: false,
       message: "Terjadi kesalahan saat menghapus laporan.",
     });
   } finally {
-    if (connection) {
-      connection.release();
-    }
+    if (connection) connection.release();
   }
 }
 
 // ========================================
-// EXPORT CONTROLLERS
+// EXPORT
 // ========================================
 
 module.exports = {
