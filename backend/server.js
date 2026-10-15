@@ -1,3 +1,4 @@
+
 /* global process, require, module */
 
 require("dotenv").config();
@@ -26,7 +27,9 @@ const { verifyToken } = require("./middleware/authMiddleware");
 const app = express();
 const PORT = Number(process.env.PORT) || 5000;
 
-console.log("LAPORKITA_BACKEND_VERSION: cloudinary-check-2");
+const BACKEND_VERSION = "delete-report-v1";
+
+console.log(`LAPORKITA_BACKEND_VERSION: ${BACKEND_VERSION}`);
 
 // ========================================
 // CORS CONFIGURATION
@@ -49,12 +52,28 @@ app.use(
       }
 
       console.warn("CORS blocked origin:", origin);
-      return callback(new Error("Origin tidak diizinkan oleh CORS."));
+
+      return callback(
+        new Error("Origin tidak diizinkan oleh CORS."),
+      );
     },
+
     credentials: true,
-    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization"],
-  })
+
+    methods: [
+      "GET",
+      "POST",
+      "PUT",
+      "PATCH",
+      "DELETE",
+      "OPTIONS",
+    ],
+
+    allowedHeaders: [
+      "Content-Type",
+      "Authorization",
+    ],
+  }),
 );
 
 // ========================================
@@ -72,6 +91,7 @@ app.get("/", (req, res) => {
   return res.status(200).json({
     success: true,
     message: "LaporKita API berhasil berjalan.",
+    version: BACKEND_VERSION,
   });
 });
 
@@ -83,6 +103,7 @@ app.get("/api/health", (req, res) => {
   return res.status(200).json({
     success: true,
     message: "Server aktif.",
+    version: BACKEND_VERSION,
     timestamp: new Date().toISOString(),
   });
 });
@@ -149,6 +170,8 @@ app.use("/api/categories", categoryRoutes);
 // REPORT ROUTES
 // ========================================
 
+// Route DELETE /api/reports/:id didaftarkan
+// melalui backend/routes/reportRoutes.js.
 app.use("/api/reports", reportRoutes);
 
 // ========================================
@@ -162,9 +185,16 @@ app.use("/api/notifications", notificationRoutes);
 // ========================================
 
 app.use((req, res) => {
+  console.warn("ENDPOINT NOT FOUND:", {
+    method: req.method,
+    url: req.originalUrl,
+    version: BACKEND_VERSION,
+  });
+
   return res.status(404).json({
     success: false,
     message: `Endpoint ${req.method} ${req.originalUrl} tidak ditemukan.`,
+    version: BACKEND_VERSION,
   });
 });
 
@@ -177,7 +207,12 @@ app.use((error, req, res, next) => {
     return next(error);
   }
 
-  console.error("API ERROR:", error.code || "", error.message);
+  console.error("API ERROR:", {
+    method: req.method,
+    url: req.originalUrl,
+    code: error.code || "",
+    message: error.message,
+  });
 
   if (error.message === "Origin tidak diizinkan oleh CORS.") {
     return res.status(403).json({
@@ -210,6 +245,7 @@ const server = app.listen(PORT, "0.0.0.0", () => {
   console.log("------------------------------------");
   console.log("LaporKita API berhasil dijalankan.");
   console.log(`Port: ${PORT}`);
+  console.log(`Backend version: ${BACKEND_VERSION}`);
   console.log(`Allowed origins: ${allowedOrigins.join(", ")}`);
   console.log("------------------------------------");
 });
