@@ -3,8 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import "../styles/profil.css";
 
 const API_URL = (
-  import.meta.env.VITE_API_URL ||
-  "https://laporkita.lashy.blitz.cloud"
+  import.meta.env.VITE_API_URL || "https://laporkita.lashy.blitz.cloud"
 ).replace(/\/+$/, "");
 
 const MAX_IMAGE_SIZE = 2 * 1024 * 1024;
