@@ -17,8 +17,8 @@ const router = express.Router();
 
 // ========================================
 // KONFIGURASI MULTER
-// Foto disimpan sementara di memori,
-// bukan di folder lokal server.
+// Foto disimpan sementara di memori server.
+// Penyimpanan permanen dilakukan oleh Cloudinary.
 // ========================================
 
 const upload = multer({
@@ -47,7 +47,7 @@ const upload = multer({
 });
 
 // ========================================
-// FUNGSI VALIDASI GAMBAR
+// VALIDASI ISI FILE GAMBAR
 // ========================================
 
 function isValidImage(buffer) {
@@ -55,11 +55,13 @@ function isValidImage(buffer) {
     return false;
   }
 
+  // JPEG
   const isJpeg =
     buffer[0] === 0xff &&
     buffer[1] === 0xd8 &&
     buffer[2] === 0xff;
 
+  // PNG
   const isPng = buffer
     .subarray(0, 8)
     .equals(
@@ -69,6 +71,7 @@ function isValidImage(buffer) {
       ])
     );
 
+  // WebP
   const isWebp =
     buffer.toString("ascii", 0, 4) === "RIFF" &&
     buffer.toString("ascii", 8, 12) === "WEBP";
@@ -77,7 +80,90 @@ function isValidImage(buffer) {
 }
 
 // ========================================
-// UPLOAD KE CLOUDINARY
+// MEMBANTU MENGAMBIL PUBLIC ID CLOUDINARY
+// ========================================
+
+function getCloudinaryPublicId(imageUrl) {
+  try {
+    const url = new URL(imageUrl);
+
+    if (url.hostname !== "res.cloudinary.com") {
+      return null;
+    }
+
+    const parts = url.pathname.split("/").filter(Boolean);
+    const uploadIndex = parts.indexOf("upload");
+
+    if (uploadIndex === -1) {
+      return null;
+    }
+
+    let fileParts = parts.slice(uploadIndex + 1);
+
+    // Hapus versi gambar, misalnya v123456789.
+    if (
+      fileParts.length > 1 &&
+      /^v\d+$/.test(fileParts[0])
+    ) {
+      fileParts = fileParts.slice(1);
+    }
+
+    if (!fileParts.length) {
+      return null;
+    }
+
+    // Hilangkan ekstensi file, misalnya .png atau .jpg.
+    const lastIndex = fileParts.length - 1;
+
+    fileParts[lastIndex] = fileParts[lastIndex].replace(
+      /\.[^.]+$/,
+      ""
+    );
+
+    const publicId = fileParts.join("/");
+
+    // Pastikan hanya gambar profil milik aplikasi
+    // yang boleh dihapus melalui fungsi ini.
+    if (!publicId.startsWith("laporkita/profiles/")) {
+      return null;
+    }
+
+    return publicId;
+  } catch (error) {
+    console.error("GAGAL MEMBACA URL GAMBAR:", error.message);
+    return null;
+  }
+}
+
+// ========================================
+// MENGHAPUS FOTO CLOUDINARY
+// ========================================
+
+async function deleteCloudinaryImage(imageUrl) {
+  if (
+    typeof imageUrl !== "string" ||
+    !imageUrl.startsWith("https://res.cloudinary.com/")
+  ) {
+    return;
+  }
+
+  const publicId = getCloudinaryPublicId(imageUrl);
+
+  if (!publicId) {
+    return;
+  }
+
+  const result = await cloudinary.uploader.destroy(publicId, {
+    resource_type: "image",
+  });
+
+  if (result.result !== "ok" && result.result !== "not found") {
+    throw new Error("Cloudinary gagal menghapus foto lama.");
+  }
+}
+
+// ========================================
+// UPLOAD FOTO KE CLOUDINARY
 // ========================================
 
 function uploadToCloudinary(buffer, userId) {
@@ -93,6 +179,12 @@ function uploadToCloudinary(buffer, userId) {
       (error, result) => {
         if (error) {
           return reject(error);
+        }
+
+        if (!result || !result.secure_url || !result.public_id) {
+          return reject(
+            new Error("Cloudinary tidak mengembalikan hasil upload yang valid.")
+          );
         }
 
         resolve(result);
@@ -165,10 +257,24 @@ router.patch("/profile", verifyToken, async (req, res) => {
       });
     }
 
-    await db.query(
+    const [result] = await db.query(
       "UPDATE users SET username = ? WHERE id = ?",
       [username, req.user.id]
     );
+
+    if (result.affectedRows === 0) {
+      const [users] = await db.query(
+        "SELECT id FROM users WHERE id = ? LIMIT 1",
+        [req.user.id]
+      );
+
+      if (!users.length) {
+        return res.status(404).json({
+          success: false,
+          message: "Pengguna tidak ditemukan.",
+        });
+      }
+    }
 
     const [rows] = await db.query(
       `SELECT id, username, email, role, profile_image
@@ -177,13 +283,6 @@ router.patch("/profile", verifyToken, async (req, res) => {
        LIMIT 1`,
       [req.user.id]
     );
-
-    if (!rows.length) {
-      return res.status(404).json({
-        success: false,
-        message: "Pengguna tidak ditemukan.",
-      });
-    }
 
     return res.json({
       success: true,
@@ -225,6 +324,7 @@ router.post(
   },
   async (req, res) => {
     let uploadedPublicId = null;
+    let databaseUpdated = false;
 
     try {
       if (!req.file) {
@@ -234,7 +334,7 @@ router.post(
         });
       }
 
-      // Periksa isi file, bukan hanya ekstensi atau MIME type.
+      // Validasi isi gambar.
       if (!isValidImage(req.file.buffer)) {
         return res.status(400).json({
           success: false,
@@ -243,8 +343,12 @@ router.post(
         });
       }
 
+      // Ambil profil dan foto lama.
       const [users] = await db.query(
-        "SELECT id, profile_image FROM users WHERE id = ? LIMIT 1",
+        `SELECT id, profile_image
+         FROM users
+         WHERE id = ?
+         LIMIT 1`,
         [req.user.id]
       );
 
@@ -255,7 +359,9 @@ router.post(
         });
       }
 
-      // Upload foto ke penyimpanan Cloudinary.
+      const oldImage = users[0].profile_image;
+
+      // Unggah foto ke Cloudinary.
       const result = await uploadToCloudinary(
         req.file.buffer,
         req.user.id
@@ -263,60 +369,23 @@ router.post(
 
       uploadedPublicId = result.public_id;
 
-      // Simpan URL HTTPS permanen dari Cloudinary ke MySQL.
+      // Simpan URL Cloudinary ke database.
       await db.query(
         "UPDATE users SET profile_image = ? WHERE id = ?",
         [result.secure_url, req.user.id]
       );
 
-      const oldImage = users[0].profile_image;
+      databaseUpdated = true;
 
-      // Hapus foto lama dari Cloudinary jika foto sebelumnya
-      // juga disimpan di folder Cloudinary milik LaporKita.
+      // Hapus foto lama setelah URL foto baru berhasil disimpan.
       if (
         oldImage &&
+        oldImage !== result.secure_url &&
         oldImage.startsWith("https://res.cloudinary.com/")
       ) {
         try {
-          const oldUrl = new URL(oldImage);
-          const pathParts = oldUrl.pathname.split("/");
-          const uploadIndex = pathParts.indexOf("upload");
-
-          if (uploadIndex !== -1) {
-            let publicIdParts = pathParts.slice(uploadIndex + 1);
-
-            // Hilangkan versi file, misalnya v123456789.
-            if (
-              publicIdParts.length > 1 &&
-              /^v\d+$/.test(publicIdParts[0])
-            ) {
-              publicIdParts = publicIdParts.slice(1);
-            }
-
-            const lastPart = publicIdParts.pop();
-
-            if (lastPart) {
-              const filenameWithoutExtension =
-                lastPart.replace(/\.[^.]+$/, "");
-
-              publicIdParts.push(filenameWithoutExtension);
-
-              const oldPublicId = publicIdParts.join("/");
-
-              // Hanya hapus gambar di folder profil LaporKita.
-              if (
-                oldPublicId.startsWith("laporkita/profiles/") &&
-                oldPublicId !== result.public_id
-              ) {
-                await cloudinary.uploader.destroy(oldPublicId, {
-                  resource_type: "image",
-                });
-              }
-            }
-          }
+          await deleteCloudinaryImage(oldImage);
         } catch (cleanupError) {
-          // Foto baru sudah berhasil disimpan.
-          // Kegagalan menghapus foto lama tidak membatalkan upload.
           console.error(
             "GAGAL MENGHAPUS FOTO LAMA:",
             cleanupError.message
@@ -336,9 +405,9 @@ router.post(
     } catch (error) {
       console.error("UPLOAD PHOTO ERROR:", error.message);
 
-      // Jika foto berhasil diunggah tetapi proses penyimpanan
-      // gagal, bersihkan foto baru agar tidak menjadi file yatim.
-      if (uploadedPublicId) {
+      // Bersihkan foto baru jika upload berhasil,
+      // tetapi penyimpanan URL ke database gagal.
+      if (uploadedPublicId && !databaseUpdated) {
         try {
           await cloudinary.uploader.destroy(uploadedPublicId, {
             resource_type: "image",
@@ -367,7 +436,10 @@ router.post(
 router.delete("/profile/photo", verifyToken, async (req, res) => {
   try {
     const [rows] = await db.query(
-      "SELECT profile_image FROM users WHERE id = ? LIMIT 1",
+      `SELECT id, profile_image
+       FROM users
+       WHERE id = ?
+       LIMIT 1`,
       [req.user.id]
     );
 
@@ -380,47 +452,19 @@ router.delete("/profile/photo", verifyToken, async (req, res) => {
 
     const image = rows[0].profile_image;
 
+    // Hapus URL dari database terlebih dahulu.
     await db.query(
       "UPDATE users SET profile_image = NULL WHERE id = ?",
       [req.user.id]
     );
 
-    // Hapus file dari Cloudinary jika URL berasal dari Cloudinary.
+    // Hapus file dari Cloudinary jika foto berasal dari sana.
     if (
       image &&
       image.startsWith("https://res.cloudinary.com/")
     ) {
       try {
-        const oldUrl = new URL(image);
-        const pathParts = oldUrl.pathname.split("/");
-        const uploadIndex = pathParts.indexOf("upload");
-
-        if (uploadIndex !== -1) {
-          let publicIdParts = pathParts.slice(uploadIndex + 1);
-
-          if (
-            publicIdParts.length > 1 &&
-            /^v\d+$/.test(publicIdParts[0])
-          ) {
-            publicIdParts = publicIdParts.slice(1);
-          }
-
-          const lastPart = publicIdParts.pop();
-
-          if (lastPart) {
-            publicIdParts.push(
-              lastPart.replace(/\.[^.]+$/, "")
-            );
-
-            const publicId = publicIdParts.join("/");
-
-            if (publicId.startsWith("laporkita/profiles/")) {
-              await cloudinary.uploader.destroy(publicId, {
-                resource_type: "image",
-              });
-            }
-          }
-        }
+        await deleteCloudinaryImage(image);
       } catch (cleanupError) {
         console.error(
           "GAGAL MENGHAPUS FOTO CLOUDINARY:",
