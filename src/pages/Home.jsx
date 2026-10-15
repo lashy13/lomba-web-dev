@@ -7,7 +7,8 @@ import "../styles/home-sections.css";
 import "../styles/about.css";
 
 const API_URL = (
-  import.meta.env.VITE_API_URL || "http://localhost:5000"
+  import.meta.env.VITE_API_URL ||
+  "https://laporkita.lashy.blitz.cloud"
 ).replace(/\/+$/, "");
 
 const INITIAL_STATS = {

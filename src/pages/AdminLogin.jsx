@@ -4,7 +4,8 @@ import { useLocation, useNavigate } from "react-router-dom";
 import "../styles/admin-login.css";
 
 const API_URL = (
-  import.meta.env.VITE_API_URL || "http://localhost:5000"
+  import.meta.env.VITE_API_URL ||
+  "https://laporkita.lashy.blitz.cloud"
 ).replace(/\/+$/, "");
 
 function AdminLogin() {

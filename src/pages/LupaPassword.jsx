@@ -5,7 +5,8 @@ import "../styles/lupa-password.css";
 import logo from "../assets/logo-laporkita.png";
 
 const API_URL = (
-  import.meta.env.VITE_API_URL || "http://localhost:5000"
+  import.meta.env.VITE_API_URL ||
+  "https://laporkita.lashy.blitz.cloud"
 ).replace(/\/+$/, "");
 
 async function postAuth(path, body) {

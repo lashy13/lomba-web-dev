@@ -6,9 +6,9 @@ import "../styles/buat-laporan.css";
 const API_WILAYAH = "https://www.emsifa.com/api-wilayah-indonesia/api";
 
 const API_URL = (
-  import.meta.env.VITE_API_URL || "http://localhost:5000"
+  import.meta.env.VITE_API_URL ||
+  "https://laporkita.lashy.blitz.cloud"
 ).replace(/\/+$/, "");
-
 const kategoriId = {
   jalan: 1,
   fasilitas: 2,
