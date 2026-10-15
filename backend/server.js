@@ -25,7 +25,9 @@ const { verifyToken } = require("./middleware/authMiddleware");
 
 const app = express();
 const PORT = Number(process.env.PORT) || 5000;
-console.log("LAPORKITA_BACKEND_VERSION: cloudinary-check-1");
+
+console.log("LAPORKITA_BACKEND_VERSION: cloudinary-check-2");
+
 // ========================================
 // CORS CONFIGURATION
 // ========================================
@@ -47,7 +49,6 @@ app.use(
       }
 
       console.warn("CORS blocked origin:", origin);
-
       return callback(new Error("Origin tidak diizinkan oleh CORS."));
     },
     credentials: true,
