@@ -1,4 +1,3 @@
-
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import "../styles/profil.css";
@@ -8,9 +7,13 @@ const API_URL = (
 ).replace(/\/+$/, "");
 
 const MAX_IMAGE_SIZE = 2 * 1024 * 1024;
+
 const ALLOWED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp"];
 
-// Mengambil foto dari beberapa kemungkinan nama properti backend.
+// ==================================================
+// UTILITAS FOTO PROFIL
+// ==================================================
+
 function getStoredImage(userData) {
   if (!userData) return "";
 
@@ -22,46 +25,61 @@ function getStoredImage(userData) {
   );
 }
 
-// Mengubah path relatif menjadi URL lengkap.
+function isCloudinaryUrl(value) {
+  if (typeof value !== "string") return false;
+
+  try {
+    const url = new URL(value);
+
+    return (
+      url.protocol === "https:" &&
+      url.hostname === "res.cloudinary.com" &&
+      /^\/[^/]+\/image\/upload\//.test(url.pathname)
+    );
+  } catch {
+    return false;
+  }
+}
+
 function getImageUrl(image) {
-  if (!image || typeof image !== "string") return "";
+  if (typeof image !== "string") return "";
 
   const imagePath = image.trim();
 
   if (!imagePath) return "";
 
-  if (
-    imagePath.startsWith("data:") ||
-    imagePath.startsWith("blob:") ||
-    /^https?:\/\//i.test(imagePath)
-  ) {
+  // Foto permanen harus berasal dari Cloudinary.
+  if (isCloudinaryUrl(imagePath)) {
     return imagePath;
   }
 
-  return `${API_URL}${imagePath.startsWith("/") ? "" : "/"}${imagePath}`;
+  // Preview lokal hanya digunakan selama proses upload.
+  if (imagePath.startsWith("blob:")) {
+    return imagePath;
+  }
+
+  // Data URL tidak digunakan sebagai penyimpanan permanen.
+  // Path lokal lama juga tidak digunakan lagi.
+  return "";
 }
 
-// Menggabungkan data user dan mempertahankan foto yang sudah tersimpan.
-function mergeUserData(currentUser = {}, returnedUser = {}) {
-  const merged = {
-    ...currentUser,
-    ...returnedUser,
-  };
-
-  const returnedImage = getStoredImage(returnedUser);
-  const currentImage = getStoredImage(currentUser);
-
-  const image = returnedImage || currentImage;
+function mergeUserData(returnedUser = {}) {
+  const image = getStoredImage(returnedUser);
 
   return {
-    ...merged,
+    ...returnedUser,
     profile_image: image || null,
     profileImage: getImageUrl(image),
   };
 }
 
+// ==================================================
+// KOMPONEN PROFIL
+// ==================================================
+
 function Profil() {
   const navigate = useNavigate();
+
   const fileInputRef = useRef(null);
   const previewUrlRef = useRef("");
 
@@ -78,9 +96,26 @@ function Profil() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
-  // ========================================
+  // ==================================================
+  // MEMBERSIHKAN PREVIEW LOKAL
+  // ==================================================
+
+  const clearPreview = useCallback(() => {
+    if (previewUrlRef.current) {
+      URL.revokeObjectURL(previewUrlRef.current);
+      previewUrlRef.current = "";
+    }
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      clearPreview();
+    };
+  }, [clearPreview]);
+
+  // ==================================================
   // REQUEST API
-  // ========================================
+  // ==================================================
 
   const apiRequest = useCallback(
     async (path, options = {}) => {
@@ -130,14 +165,16 @@ function Profil() {
     [navigate],
   );
 
-  // ========================================
+  // ==================================================
   // MEMUAT PROFIL DAN LAPORAN
-  // ========================================
+  // ==================================================
 
   useEffect(() => {
     let cancelled = false;
 
     async function loadData() {
+      setLoading(true);
+
       try {
         const token = localStorage.getItem("token");
 
@@ -174,15 +211,16 @@ function Profil() {
           return;
         }
 
-        // Data server menjadi sumber utama foto profil.
-        const savedUser = mergeUserData({}, currentUser);
+        // Database adalah sumber utama data profil.
+        const savedUser = mergeUserData(currentUser);
 
         setUser(savedUser);
         setUsername(savedUser.username || "");
         setEmail(savedUser.email || "");
-        setProfileImage(savedUser.profileImage || "");
+        setProfileImage(savedUser.profileImage);
 
         localStorage.setItem("user", JSON.stringify(savedUser));
+
         localStorage.setItem("isLoggedIn", "true");
 
         if (reportsResult.status === "fulfilled") {
@@ -196,10 +234,7 @@ function Profil() {
 
           setReports(reportList);
         } else {
-          console.error(
-            "Gagal memuat laporan pengguna:",
-            reportsResult.reason,
-          );
+          console.error("Gagal memuat laporan:", reportsResult.reason);
 
           setReports([]);
         }
@@ -224,17 +259,12 @@ function Profil() {
 
     return () => {
       cancelled = true;
-
-      if (previewUrlRef.current) {
-        URL.revokeObjectURL(previewUrlRef.current);
-        previewUrlRef.current = "";
-      }
     };
   }, [apiRequest, navigate]);
 
-  // ========================================
+  // ==================================================
   // STATISTIK LAPORAN
-  // ========================================
+  // ==================================================
 
   const statistics = useMemo(() => {
     const total = reports.length;
@@ -255,30 +285,44 @@ function Profil() {
       (report) => report.status === "Selesai",
     ).length;
 
-    return { total, waiting, verified, process, completed };
+    return {
+      total,
+      waiting,
+      verified,
+      process,
+      completed,
+    };
   }, [reports]);
 
-  // ========================================
+  // ==================================================
   // POIN WARGA
-  // ========================================
+  // ==================================================
 
   const points = useMemo(
     () =>
       reports.reduce((total, report) => {
         let reportPoints = 10;
 
-        if (report.status === "Diverifikasi") reportPoints += 10;
-        if (report.status === "Dalam Proses") reportPoints += 15;
-        if (report.status === "Selesai") reportPoints += 30;
+        if (report.status === "Diverifikasi") {
+          reportPoints += 10;
+        }
+
+        if (report.status === "Dalam Proses") {
+          reportPoints += 15;
+        }
+
+        if (report.status === "Selesai") {
+          reportPoints += 30;
+        }
 
         return total + reportPoints;
       }, 0),
     [reports],
   );
 
-  // ========================================
+  // ==================================================
   // LEVEL WARGA
-  // ========================================
+  // ==================================================
 
   const level = useMemo(() => {
     if (points >= 500) return 5;
@@ -332,9 +376,9 @@ function Profil() {
             100,
         );
 
-  // ========================================
+  // ==================================================
   // BADGES
-  // ========================================
+  // ==================================================
 
   const badges = useMemo(
     () => [
@@ -370,34 +414,35 @@ function Profil() {
     [statistics],
   );
 
-  // ========================================
+  // ==================================================
   // UPDATE USER
-  // ========================================
+  // ==================================================
 
-  const updateUserState = (updatedUser) => {
+  const updateUserState = useCallback((updatedUser) => {
     setUser(updatedUser);
     setUsername(updatedUser.username || "");
     setEmail(updatedUser.email || "");
-    setProfileImage(updatedUser.profileImage || "");
+    setProfileImage(getImageUrl(getStoredImage(updatedUser)));
 
     localStorage.setItem("user", JSON.stringify(updatedUser));
 
     window.dispatchEvent(new Event("userUpdated"));
-  };
+  }, []);
 
-  // ========================================
-  // PILIH DAN UPLOAD FOTO PROFIL
-  // ========================================
+  // ==================================================
+  // UPLOAD FOTO PROFIL
+  // ==================================================
 
   const handleImageChange = async (event) => {
     const file = event.target.files?.[0];
 
+    // Mengizinkan pengguna memilih file yang sama lagi.
     event.target.value = "";
 
     if (!file) return;
 
     if (!ALLOWED_IMAGE_TYPES.includes(file.type)) {
-      alert("Gunakan gambar berformat JPG, PNG, atau WebP.");
+      alert("Gunakan gambar JPG, PNG, atau WebP.");
       return;
     }
 
@@ -424,6 +469,7 @@ function Profil() {
     const previousImage = profileImage;
     const previewUrl = URL.createObjectURL(file);
 
+    clearPreview();
     previewUrlRef.current = previewUrl;
 
     setSaving(true);
@@ -432,6 +478,8 @@ function Profil() {
 
     try {
       const formData = new FormData();
+
+      // Harus sesuai dengan upload.single("photo") di backend.
       formData.append("photo", file);
 
       const response = await fetch(`${API_URL}/api/auth/profile/photo`, {
@@ -459,7 +507,7 @@ function Profil() {
         throw new Error("Sesi login berakhir. Silakan login kembali.");
       }
 
-      if (!response.ok || data.success === false) {
+      if (!response.ok || data.success !== true) {
         throw new Error(data.message || "Foto gagal diunggah.");
       }
 
@@ -469,27 +517,22 @@ function Profil() {
         data.user?.profileImage ||
         data.user?.profile_image_url;
 
-      if (
-        !savedImagePath ||
-        typeof savedImagePath !== "string"
-      ) {
+      // Tolak respons yang masih menggunakan path lokal.
+      if (!isCloudinaryUrl(savedImagePath)) {
         throw new Error(
-          "Server tidak mengembalikan URL foto yang sudah disimpan.",
+          "Backend belum mengembalikan URL Cloudinary. Periksa deployment backend.",
         );
       }
 
-      const savedImageUrl = getImageUrl(savedImagePath);
-
-      // Simpan URL Cloudinary yang dikembalikan backend.
       const updatedUser = {
         ...user,
         ...(data.user || {}),
         profile_image: savedImagePath,
-        profileImage: savedImageUrl,
+        profileImage: savedImagePath,
       };
 
       setUser(updatedUser);
-      setProfileImage(savedImageUrl);
+      setProfileImage(savedImagePath);
 
       localStorage.setItem("user", JSON.stringify(updatedUser));
 
@@ -504,17 +547,17 @@ function Profil() {
       alert(error.message || "Foto gagal diunggah. Silakan coba kembali.");
     } finally {
       if (previewUrlRef.current === previewUrl) {
+        URL.revokeObjectURL(previewUrl);
         previewUrlRef.current = "";
       }
 
-      URL.revokeObjectURL(previewUrl);
       setSaving(false);
     }
   };
 
-  // ========================================
-  // BUKA PEMILIH FOTO
-  // ========================================
+  // ==================================================
+  // MEMBUKA PEMILIH FOTO
+  // ==================================================
 
   const handleChangePhoto = () => {
     if (saving) return;
@@ -526,9 +569,9 @@ function Profil() {
     }, 50);
   };
 
-  // ========================================
+  // ==================================================
   // HAPUS FOTO PROFIL
-  // ========================================
+  // ==================================================
 
   const handleRemoveImage = async () => {
     if (!profileImage || saving) return;
@@ -573,9 +616,9 @@ function Profil() {
     }
   };
 
-  // ========================================
+  // ==================================================
   // SIMPAN PERUBAHAN NAMA
-  // ========================================
+  // ==================================================
 
   const handleSave = async (event) => {
     event.preventDefault();
@@ -611,22 +654,20 @@ function Profil() {
 
       const returnedUser = data.user || {};
 
-      // Pertahankan URL foto saat menyimpan nama.
-      const currentImage =
-        profileImage ||
-        user.profileImage ||
-        getImageUrl(getStoredImage(user));
-
+      // Jika respons edit nama tidak menyertakan foto,
+      // pertahankan URL foto Cloudinary yang sudah ada.
       const serverImage = getStoredImage(returnedUser);
+      const currentImage = getStoredImage(user);
+
+      const image = serverImage || currentImage || "";
 
       const updatedUser = {
         ...user,
         ...returnedUser,
         username: returnedUser.username || trimmedUsername,
         email: returnedUser.email || user.email || "",
-        profile_image:
-          serverImage || getStoredImage(user) || null,
-        profileImage: getImageUrl(serverImage || currentImage),
+        profile_image: image || null,
+        profileImage: getImageUrl(image),
       };
 
       updateUserState(updatedUser);
@@ -644,17 +685,15 @@ function Profil() {
     }
   };
 
-  // ========================================
+  // ==================================================
   // BATAL EDIT
-  // ========================================
+  // ==================================================
 
   const handleCancel = () => {
     setUsername(user?.username || "");
     setEmail(user?.email || "");
 
-    setProfileImage(
-      user?.profileImage || getImageUrl(getStoredImage(user)),
-    );
+    setProfileImage(getImageUrl(getStoredImage(user)));
 
     setIsEditing(false);
     setShowPhotoMenu(false);
@@ -664,9 +703,9 @@ function Profil() {
     }
   };
 
-  // ========================================
+  // ==================================================
   // LOGOUT
-  // ========================================
+  // ==================================================
 
   const handleLogout = () => {
     localStorage.removeItem("token");
@@ -680,9 +719,9 @@ function Profil() {
     navigate("/", { replace: true });
   };
 
-  // ========================================
+  // ==================================================
   // LOADING
-  // ========================================
+  // ==================================================
 
   if (loading) {
     return (
@@ -696,9 +735,9 @@ function Profil() {
 
   if (!user) return null;
 
-  // ========================================
+  // ==================================================
   // TAMPILAN UTAMA
-  // ========================================
+  // ==================================================
 
   return (
     <main className="profil-page">
@@ -715,7 +754,9 @@ function Profil() {
 
         <div className="profil-heading">
           <span className="profil-label">AKUN LAPORKITA</span>
+
           <h1>Profil Saya</h1>
+
           <p>
             Kelola akun, lihat aktivitas, dan pantau kontribusimu di LaporKita.
           </p>
@@ -772,6 +813,7 @@ function Profil() {
                         strokeLinecap="round"
                         strokeLinejoin="round"
                       />
+
                       <circle
                         cx="12"
                         cy="13"
@@ -790,6 +832,7 @@ function Profil() {
                         onClick={handleChangePhoto}
                       >
                         <span className="profil-photo-menu-icon">+</span>
+
                         <span>
                           {profileImage ? "Ganti foto" : "Tambah foto"}
                         </span>
@@ -805,6 +848,7 @@ function Profil() {
                             onClick={handleRemoveImage}
                           >
                             <span className="profil-photo-menu-icon">×</span>
+
                             <span>Hapus foto</span>
                           </button>
                         </>
@@ -831,6 +875,7 @@ function Profil() {
           <div className="profil-stats">
             <div className="profil-stat-card">
               <span className="profil-stat-icon">◎</span>
+
               <div>
                 <strong>{statistics.total}</strong>
                 <span>Total laporan</span>
@@ -839,6 +884,7 @@ function Profil() {
 
             <div className="profil-stat-card">
               <span className="profil-stat-icon">◷</span>
+
               <div>
                 <strong>{statistics.process}</strong>
                 <span>Diproses</span>
@@ -847,6 +893,7 @@ function Profil() {
 
             <div className="profil-stat-card">
               <span className="profil-stat-icon">✓</span>
+
               <div>
                 <strong>{statistics.completed}</strong>
                 <span>Selesai</span>
@@ -858,6 +905,7 @@ function Profil() {
             <div className="profil-level-header">
               <div>
                 <span className="profil-level-label">LEVEL WARGA</span>
+
                 <h3>
                   Level {level} — {levelName}
                 </h3>
@@ -888,8 +936,8 @@ function Profil() {
                 <span>Level maksimum tercapai 🎉</span>
               ) : (
                 <span>
-                  {Math.max(0, nextLevelPoints - points)} poin lagi menuju
-                  level berikutnya
+                  {Math.max(0, nextLevelPoints - points)} poin lagi menuju level
+                  berikutnya
                 </span>
               )}
 
@@ -919,6 +967,7 @@ function Profil() {
 
                   <div>
                     <strong>{badge.name}</strong>
+
                     <span>
                       {badge.unlocked ? badge.description : "Belum terbuka"}
                     </span>
@@ -934,6 +983,7 @@ function Profil() {
             <div className="profil-section-title">
               <div>
                 <h3>Informasi akun</h3>
+
                 <p>Informasi dasar yang digunakan pada akun LaporKita.</p>
               </div>
 
@@ -1032,9 +1082,10 @@ function Profil() {
         <section className="profil-danger-card">
           <div>
             <h3>Keluar dari akun</h3>
+
             <p>
-              Kamu dapat masuk kembali menggunakan email dan password yang
-              sudah terdaftar.
+              Kamu dapat masuk kembali menggunakan email dan password yang sudah
+              terdaftar.
             </p>
           </div>
 
