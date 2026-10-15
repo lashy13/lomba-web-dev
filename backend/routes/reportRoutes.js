@@ -1,4 +1,3 @@
-
 /* global require, module */
 
 const express = require("express");
@@ -18,6 +17,7 @@ const {
   updateReportStatus,
   getReportStats,
   getAdminReports,
+  deleteReport,
 } = require("../controllers/reportController");
 
 const router = express.Router();
@@ -60,6 +60,17 @@ router.patch(
   verifyToken,
   verifyAdmin,
   updateReportStatus
+);
+
+// ========================================
+// HAPUS LAPORAN
+// Pemilik hanya bisa menghapus laporan berstatus Menunggu.
+// Admin bisa menghapus laporan dengan status apa pun.
+// ========================================
+router.delete(
+  "/:id",
+  verifyToken,
+  deleteReport
 );
 
 // ========================================
