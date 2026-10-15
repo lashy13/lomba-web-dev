@@ -4,11 +4,7 @@ const express = require("express");
 const multer = require("multer");
 const { Readable } = require("stream");
 
-const {
-  register,
-  login,
-} = require("../controllers/authController");
-
+const { register, login } = require("../controllers/authController");
 const { verifyToken } = require("../middleware/authMiddleware");
 const db = require("../config/database");
 const cloudinary = require("../config/cloudinary");
@@ -16,19 +12,17 @@ const cloudinary = require("../config/cloudinary");
 const router = express.Router();
 
 // ========================================
-// KONFIGURASI MULTER
-// Foto disimpan sementara di memori server.
-// Penyimpanan permanen dilakukan oleh Cloudinary.
+// MULTER CONFIGURATION
+// Foto disimpan sementara di memori,
+// bukan di folder uploads lokal.
 // ========================================
 
 const upload = multer({
   storage: multer.memoryStorage(),
-
   limits: {
     fileSize: 2 * 1024 * 1024,
     files: 1,
   },
-
   fileFilter: (req, file, callback) => {
     const allowedTypes = [
       "image/jpeg",
@@ -37,9 +31,12 @@ const upload = multer({
     ];
 
     if (!allowedTypes.includes(file.mimetype)) {
-      return callback(
-        new Error("Foto harus berformat JPG, PNG, atau WebP.")
+      const error = new Error(
+        "Foto harus berformat JPG, PNG, atau WebP."
       );
+
+      error.status = 400;
+      return callback(error);
     }
 
     callback(null, true);
@@ -47,7 +44,7 @@ const upload = multer({
 });
 
 // ========================================
-// VALIDASI ISI FILE GAMBAR
+// VALIDATE IMAGE SIGNATURE
 // ========================================
 
 function isValidImage(buffer) {
@@ -55,13 +52,11 @@ function isValidImage(buffer) {
     return false;
   }
 
-  // JPEG
   const isJpeg =
     buffer[0] === 0xff &&
     buffer[1] === 0xd8 &&
     buffer[2] === 0xff;
 
-  // PNG
   const isPng = buffer
     .subarray(0, 8)
     .equals(
@@ -71,7 +66,6 @@ function isValidImage(buffer) {
       ])
     );
 
-  // WebP
   const isWebp =
     buffer.toString("ascii", 0, 4) === "RIFF" &&
     buffer.toString("ascii", 8, 12) === "WEBP";
@@ -80,14 +74,17 @@ function isValidImage(buffer) {
 }
 
 // ========================================
-// MEMBANTU MENGAMBIL PUBLIC ID CLOUDINARY
+// GET CLOUDINARY PUBLIC ID
 // ========================================
 
 function getCloudinaryPublicId(imageUrl) {
   try {
     const url = new URL(imageUrl);
 
-    if (url.hostname !== "res.cloudinary.com") {
+    if (
+      url.protocol !== "https:" ||
+      url.hostname !== "res.cloudinary.com"
+    ) {
       return null;
     }
 
@@ -100,11 +97,8 @@ function getCloudinaryPublicId(imageUrl) {
 
     let fileParts = parts.slice(uploadIndex + 1);
 
-    // Hapus versi gambar, misalnya v123456789.
-    if (
-      fileParts.length > 1 &&
-      /^v\d+$/.test(fileParts[0])
-    ) {
+    // Hapus version Cloudinary, misalnya v1234567890.
+    if (fileParts.length > 1 && /^v\d+$/.test(fileParts[0])) {
       fileParts = fileParts.slice(1);
     }
 
@@ -112,9 +106,9 @@ function getCloudinaryPublicId(imageUrl) {
       return null;
     }
 
-    // Hilangkan ekstensi file, misalnya .png atau .jpg.
     const lastIndex = fileParts.length - 1;
 
+    // Hapus ekstensi file, misalnya .png atau .jpg.
     fileParts[lastIndex] = fileParts[lastIndex].replace(
       /\.[^.]+$/,
       ""
@@ -122,21 +116,23 @@ function getCloudinaryPublicId(imageUrl) {
 
     const publicId = fileParts.join("/");
 
-    // Pastikan hanya gambar profil milik aplikasi
-    // yang boleh dihapus melalui fungsi ini.
     if (!publicId.startsWith("laporkita/profiles/")) {
       return null;
     }
 
     return publicId;
   } catch (error) {
-    console.error("GAGAL MEMBACA URL GAMBAR:", error.message);
+    console.error(
+      "GAGAL MEMBACA URL GAMBAR:",
+      error.message
+    );
+
     return null;
   }
 }
 
 // ========================================
-// MENGHAPUS FOTO CLOUDINARY
+// DELETE CLOUDINARY IMAGE
 // ========================================
 
 async function deleteCloudinaryImage(imageUrl) {
@@ -144,6 +140,7 @@ async function deleteCloudinaryImage(imageUrl) {
     typeof imageUrl !== "string" ||
     !imageUrl.startsWith("https://res.cloudinary.com/")
   ) {
+    // Foto lama lokal tidak dihapus melalui Cloudinary.
     return;
   }
 
@@ -157,13 +154,16 @@ async function deleteCloudinaryImage(imageUrl) {
     resource_type: "image",
   });
 
-  if (result.result !== "ok" && result.result !== "not found") {
+  if (
+    result.result !== "ok" &&
+    result.result !== "not found"
+  ) {
     throw new Error("Cloudinary gagal menghapus foto lama.");
   }
 }
 
 // ========================================
-// UPLOAD FOTO KE CLOUDINARY
+// UPLOAD TO CLOUDINARY
 // ========================================
 
 function uploadToCloudinary(buffer, userId) {
@@ -181,9 +181,11 @@ function uploadToCloudinary(buffer, userId) {
           return reject(error);
         }
 
-        if (!result || !result.secure_url || !result.public_id) {
+        if (!result?.secure_url || !result?.public_id) {
           return reject(
-            new Error("Cloudinary tidak mengembalikan hasil upload yang valid.")
+            new Error(
+              "Cloudinary tidak mengembalikan URL foto."
+            )
           );
         }
 
@@ -196,14 +198,14 @@ function uploadToCloudinary(buffer, userId) {
 }
 
 // ========================================
-// REGISTER DAN LOGIN
+// REGISTER & LOGIN
 // ========================================
 
 router.post("/register", register);
 router.post("/login", login);
 
 // ========================================
-// GET PROFIL
+// GET PROFILE
 // GET /api/auth/profile
 // ========================================
 
@@ -239,7 +241,7 @@ router.get("/profile", verifyToken, async (req, res) => {
 });
 
 // ========================================
-// UPDATE NAMA
+// UPDATE PROFILE
 // PATCH /api/auth/profile
 // ========================================
 
@@ -257,24 +259,10 @@ router.patch("/profile", verifyToken, async (req, res) => {
       });
     }
 
-    const [result] = await db.query(
+    await db.query(
       "UPDATE users SET username = ? WHERE id = ?",
       [username, req.user.id]
     );
-
-    if (result.affectedRows === 0) {
-      const [users] = await db.query(
-        "SELECT id FROM users WHERE id = ? LIMIT 1",
-        [req.user.id]
-      );
-
-      if (!users.length) {
-        return res.status(404).json({
-          success: false,
-          message: "Pengguna tidak ditemukan.",
-        });
-      }
-    }
 
     const [rows] = await db.query(
       `SELECT id, username, email, role, profile_image
@@ -283,6 +271,13 @@ router.patch("/profile", verifyToken, async (req, res) => {
        LIMIT 1`,
       [req.user.id]
     );
+
+    if (!rows.length) {
+      return res.status(404).json({
+        success: false,
+        message: "Pengguna tidak ditemukan.",
+      });
+    }
 
     return res.json({
       success: true,
@@ -300,7 +295,7 @@ router.patch("/profile", verifyToken, async (req, res) => {
 });
 
 // ========================================
-// UPLOAD FOTO PROFIL
+// UPLOAD PROFILE PHOTO
 // POST /api/auth/profile/photo
 // ========================================
 
@@ -313,7 +308,15 @@ router.post(
         return next();
       }
 
-      return res.status(400).json({
+      console.error("MULTER UPLOAD ERROR:", error.message);
+
+      const status =
+        error.code === "LIMIT_FILE_SIZE" ||
+        error.status === 400
+          ? 400
+          : 500;
+
+      return res.status(status).json({
         success: false,
         message:
           error.code === "LIMIT_FILE_SIZE"
@@ -334,16 +337,13 @@ router.post(
         });
       }
 
-      // Validasi isi gambar.
       if (!isValidImage(req.file.buffer)) {
         return res.status(400).json({
           success: false,
-          message:
-            "Isi file bukan gambar JPG, PNG, atau WebP yang valid.",
+          message: "Isi file bukan gambar yang valid.",
         });
       }
 
-      // Ambil profil dan foto lama.
       const [users] = await db.query(
         `SELECT id, profile_image
          FROM users
@@ -361,7 +361,7 @@ router.post(
 
       const oldImage = users[0].profile_image;
 
-      // Unggah foto ke Cloudinary.
+      // Upload foto baru ke Cloudinary.
       const result = await uploadToCloudinary(
         req.file.buffer,
         req.user.id
@@ -377,12 +377,8 @@ router.post(
 
       databaseUpdated = true;
 
-      // Hapus foto lama setelah URL foto baru berhasil disimpan.
-      if (
-        oldImage &&
-        oldImage !== result.secure_url &&
-        oldImage.startsWith("https://res.cloudinary.com/")
-      ) {
+      // Hapus foto lama jika berasal dari Cloudinary.
+      if (oldImage && oldImage !== result.secure_url) {
         try {
           await deleteCloudinaryImage(oldImage);
         } catch (cleanupError) {
@@ -403,10 +399,10 @@ router.post(
         },
       });
     } catch (error) {
-      console.error("UPLOAD PHOTO ERROR:", error.message);
+      console.error("UPLOAD PHOTO ERROR:", error);
 
-      // Bersihkan foto baru jika upload berhasil,
-      // tetapi penyimpanan URL ke database gagal.
+      // Jika database gagal diperbarui, hapus foto baru
+      // dari Cloudinary agar tidak meninggalkan file yatim.
       if (uploadedPublicId && !databaseUpdated) {
         try {
           await cloudinary.uploader.destroy(uploadedPublicId, {
@@ -429,7 +425,7 @@ router.post(
 );
 
 // ========================================
-// HAPUS FOTO PROFIL
+// DELETE PROFILE PHOTO
 // DELETE /api/auth/profile/photo
 // ========================================
 
@@ -452,17 +448,12 @@ router.delete("/profile/photo", verifyToken, async (req, res) => {
 
     const image = rows[0].profile_image;
 
-    // Hapus URL dari database terlebih dahulu.
     await db.query(
       "UPDATE users SET profile_image = NULL WHERE id = ?",
       [req.user.id]
     );
 
-    // Hapus file dari Cloudinary jika foto berasal dari sana.
-    if (
-      image &&
-      image.startsWith("https://res.cloudinary.com/")
-    ) {
+    if (image) {
       try {
         await deleteCloudinaryImage(image);
       } catch (cleanupError) {

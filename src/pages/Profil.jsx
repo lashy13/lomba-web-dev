@@ -1,3 +1,4 @@
+
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import "../styles/profil.css";
@@ -9,23 +10,60 @@ const API_URL = (
 const MAX_IMAGE_SIZE = 2 * 1024 * 1024;
 const ALLOWED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp"];
 
+// Mengambil foto dari beberapa kemungkinan nama properti backend.
+function getStoredImage(userData) {
+  if (!userData) return "";
+
+  return (
+    userData.profileImage ||
+    userData.profile_image ||
+    userData.profile_image_url ||
+    ""
+  );
+}
+
+// Mengubah path relatif menjadi URL lengkap.
 function getImageUrl(image) {
-  if (!image) return "";
+  if (!image || typeof image !== "string") return "";
+
+  const imagePath = image.trim();
+
+  if (!imagePath) return "";
 
   if (
-    image.startsWith("data:") ||
-    image.startsWith("blob:") ||
-    /^https?:\/\//i.test(image)
+    imagePath.startsWith("data:") ||
+    imagePath.startsWith("blob:") ||
+    /^https?:\/\//i.test(imagePath)
   ) {
-    return image;
+    return imagePath;
   }
 
-  return `${API_URL}${image.startsWith("/") ? "" : "/"}${image}`;
+  return `${API_URL}${imagePath.startsWith("/") ? "" : "/"}${imagePath}`;
+}
+
+// Menggabungkan data user dan mempertahankan foto yang sudah tersimpan.
+function mergeUserData(currentUser = {}, returnedUser = {}) {
+  const merged = {
+    ...currentUser,
+    ...returnedUser,
+  };
+
+  const returnedImage = getStoredImage(returnedUser);
+  const currentImage = getStoredImage(currentUser);
+
+  const image = returnedImage || currentImage;
+
+  return {
+    ...merged,
+    profile_image: image || null,
+    profileImage: getImageUrl(image),
+  };
 }
 
 function Profil() {
   const navigate = useNavigate();
   const fileInputRef = useRef(null);
+  const previewUrlRef = useRef("");
 
   const [user, setUser] = useState(null);
   const [username, setUsername] = useState("");
@@ -53,8 +91,6 @@ function Profil() {
         ...options.headers,
       };
 
-      // Jangan memasang Content-Type JSON untuk FormData.
-      // Browser akan mengatur multipart boundary secara otomatis.
       if (
         options.body &&
         !(options.body instanceof FormData) &&
@@ -68,13 +104,7 @@ function Profil() {
         headers,
       });
 
-      let data;
-
-      try {
-        data = await response.json();
-      } catch {
-        data = {};
-      }
+      const data = await response.json().catch(() => ({}));
 
       if (response.status === 401) {
         localStorage.removeItem("token");
@@ -101,7 +131,7 @@ function Profil() {
   );
 
   // ========================================
-  // LOAD USER DAN LAPORAN
+  // MEMUAT PROFIL DAN LAPORAN
   // ========================================
 
   useEffect(() => {
@@ -119,44 +149,60 @@ function Profil() {
           return;
         }
 
-        const [profileData, reportsData] = await Promise.all([
-          apiRequest("/api/auth/me"),
+        const [profileResult, reportsResult] = await Promise.allSettled([
+          apiRequest("/api/auth/profile"),
           apiRequest("/api/reports/my-reports"),
         ]);
 
         if (cancelled) return;
 
+        if (profileResult.status === "rejected") {
+          throw profileResult.reason;
+        }
+
+        const profileData = profileResult.value;
         const currentUser = profileData.user;
 
-        if (!currentUser || currentUser.role !== "user") {
-          navigate(currentUser?.role === "admin" ? "/admin" : "/login", {
+        if (!currentUser) {
+          throw new Error("Data profil tidak ditemukan dari server.");
+        }
+
+        if (currentUser.role !== "user") {
+          navigate(currentUser.role === "admin" ? "/admin" : "/login", {
             replace: true,
           });
           return;
         }
 
-        const savedUser = {
-          ...currentUser,
-          profileImage: getImageUrl(
-            currentUser.profile_image || currentUser.profileImage || "",
-          ),
-        };
+        // Data server menjadi sumber utama foto profil.
+        const savedUser = mergeUserData({}, currentUser);
 
         setUser(savedUser);
         setUsername(savedUser.username || "");
         setEmail(savedUser.email || "");
-        setProfileImage(savedUser.profileImage);
+        setProfileImage(savedUser.profileImage || "");
 
         localStorage.setItem("user", JSON.stringify(savedUser));
         localStorage.setItem("isLoggedIn", "true");
 
-        const reportList = Array.isArray(reportsData.reports)
-          ? reportsData.reports
-          : Array.isArray(reportsData.data)
-            ? reportsData.data
-            : [];
+        if (reportsResult.status === "fulfilled") {
+          const reportsData = reportsResult.value;
 
-        setReports(reportList);
+          const reportList = Array.isArray(reportsData.reports)
+            ? reportsData.reports
+            : Array.isArray(reportsData.data)
+              ? reportsData.data
+              : [];
+
+          setReports(reportList);
+        } else {
+          console.error(
+            "Gagal memuat laporan pengguna:",
+            reportsResult.reason,
+          );
+
+          setReports([]);
+        }
       } catch (error) {
         if (cancelled) return;
 
@@ -178,6 +224,11 @@ function Profil() {
 
     return () => {
       cancelled = true;
+
+      if (previewUrlRef.current) {
+        URL.revokeObjectURL(previewUrlRef.current);
+        previewUrlRef.current = "";
+      }
     };
   }, [apiRequest, navigate]);
 
@@ -204,38 +255,26 @@ function Profil() {
       (report) => report.status === "Selesai",
     ).length;
 
-    return {
-      total,
-      waiting,
-      verified,
-      process,
-      completed,
-    };
+    return { total, waiting, verified, process, completed };
   }, [reports]);
 
   // ========================================
   // POIN WARGA
   // ========================================
 
-  const points = useMemo(() => {
-    return reports.reduce((total, report) => {
-      let reportPoints = 10;
+  const points = useMemo(
+    () =>
+      reports.reduce((total, report) => {
+        let reportPoints = 10;
 
-      if (report.status === "Diverifikasi") {
-        reportPoints += 10;
-      }
+        if (report.status === "Diverifikasi") reportPoints += 10;
+        if (report.status === "Dalam Proses") reportPoints += 15;
+        if (report.status === "Selesai") reportPoints += 30;
 
-      if (report.status === "Dalam Proses") {
-        reportPoints += 15;
-      }
-
-      if (report.status === "Selesai") {
-        reportPoints += 30;
-      }
-
-      return total + reportPoints;
-    }, 0);
-  }, [reports]);
+        return total + reportPoints;
+      }, 0),
+    [reports],
+  );
 
   // ========================================
   // LEVEL WARGA
@@ -332,13 +371,27 @@ function Profil() {
   );
 
   // ========================================
+  // UPDATE USER
+  // ========================================
+
+  const updateUserState = (updatedUser) => {
+    setUser(updatedUser);
+    setUsername(updatedUser.username || "");
+    setEmail(updatedUser.email || "");
+    setProfileImage(updatedUser.profileImage || "");
+
+    localStorage.setItem("user", JSON.stringify(updatedUser));
+
+    window.dispatchEvent(new Event("userUpdated"));
+  };
+
+  // ========================================
   // PILIH DAN UPLOAD FOTO PROFIL
   // ========================================
 
   const handleImageChange = async (event) => {
     const file = event.target.files?.[0];
 
-    // Mengizinkan pengguna memilih ulang file yang sama.
     event.target.value = "";
 
     if (!file) return;
@@ -371,6 +424,8 @@ function Profil() {
     const previousImage = profileImage;
     const previewUrl = URL.createObjectURL(file);
 
+    previewUrlRef.current = previewUrl;
+
     setSaving(true);
     setShowPhotoMenu(false);
     setProfileImage(previewUrl);
@@ -387,13 +442,7 @@ function Profil() {
         body: formData,
       });
 
-      let data = {};
-
-      try {
-        data = await response.json();
-      } catch {
-        data = {};
-      }
+      const data = await response.json().catch(() => ({}));
 
       if (response.status === 401) {
         localStorage.removeItem("token");
@@ -417,19 +466,25 @@ function Profil() {
       const savedImagePath =
         data.profileImage ||
         data.user?.profile_image ||
-        data.user?.profileImage;
+        data.user?.profileImage ||
+        data.user?.profile_image_url;
 
-      if (!savedImagePath) {
+      if (
+        !savedImagePath ||
+        typeof savedImagePath !== "string"
+      ) {
         throw new Error(
-          "Server tidak mengembalikan lokasi foto yang tersimpan.",
+          "Server tidak mengembalikan URL foto yang sudah disimpan.",
         );
       }
 
       const savedImageUrl = getImageUrl(savedImagePath);
 
+      // Simpan URL Cloudinary yang dikembalikan backend.
       const updatedUser = {
         ...user,
         ...(data.user || {}),
+        profile_image: savedImagePath,
         profileImage: savedImageUrl,
       };
 
@@ -446,8 +501,12 @@ function Profil() {
 
       setProfileImage(previousImage);
 
-      alert(error.message || "Foto gagal diunggah. Periksa koneksi backend.");
+      alert(error.message || "Foto gagal diunggah. Silakan coba kembali.");
     } finally {
+      if (previewUrlRef.current === previewUrl) {
+        previewUrlRef.current = "";
+      }
+
       URL.revokeObjectURL(previewUrl);
       setSaving(false);
     }
@@ -468,7 +527,7 @@ function Profil() {
   };
 
   // ========================================
-  // HAPUS FOTO PROFIL DARI SERVER
+  // HAPUS FOTO PROFIL
   // ========================================
 
   const handleRemoveImage = async () => {
@@ -538,6 +597,8 @@ function Profil() {
       return;
     }
 
+    if (saving) return;
+
     setSaving(true);
 
     try {
@@ -550,32 +611,28 @@ function Profil() {
 
       const returnedUser = data.user || {};
 
-      const returnedImage =
-        returnedUser.profile_image ||
-        returnedUser.profileImage ||
-        user.profile_image ||
+      // Pertahankan URL foto saat menyimpan nama.
+      const currentImage =
+        profileImage ||
         user.profileImage ||
-        "";
+        getImageUrl(getStoredImage(user));
+
+      const serverImage = getStoredImage(returnedUser);
 
       const updatedUser = {
         ...user,
         ...returnedUser,
         username: returnedUser.username || trimmedUsername,
-        email: returnedUser.email || user.email,
-        profileImage: getImageUrl(returnedImage),
+        email: returnedUser.email || user.email || "",
+        profile_image:
+          serverImage || getStoredImage(user) || null,
+        profileImage: getImageUrl(serverImage || currentImage),
       };
 
-      setUser(updatedUser);
-      setUsername(updatedUser.username);
-      setEmail(updatedUser.email || "");
-      setProfileImage(updatedUser.profileImage);
-
-      localStorage.setItem("user", JSON.stringify(updatedUser));
+      updateUserState(updatedUser);
 
       setIsEditing(false);
       setShowPhotoMenu(false);
-
-      window.dispatchEvent(new Event("userUpdated"));
 
       alert("Profil berhasil diperbarui.");
     } catch (error) {
@@ -593,8 +650,10 @@ function Profil() {
 
   const handleCancel = () => {
     setUsername(user?.username || "");
+    setEmail(user?.email || "");
+
     setProfileImage(
-      getImageUrl(user?.profile_image || user?.profileImage || ""),
+      user?.profileImage || getImageUrl(getStoredImage(user)),
     );
 
     setIsEditing(false);
@@ -635,9 +694,7 @@ function Profil() {
     );
   }
 
-  if (!user) {
-    return null;
-  }
+  if (!user) return null;
 
   // ========================================
   // TAMPILAN UTAMA
@@ -677,6 +734,8 @@ function Profil() {
                       "Foto profil gagal dimuat:",
                       event.currentTarget.src,
                     );
+
+                    event.currentTarget.onerror = null;
                   }}
                 />
               ) : (
@@ -829,8 +888,8 @@ function Profil() {
                 <span>Level maksimum tercapai 🎉</span>
               ) : (
                 <span>
-                  {Math.max(0, nextLevelPoints - points)} poin lagi menuju level
-                  berikutnya
+                  {Math.max(0, nextLevelPoints - points)} poin lagi menuju
+                  level berikutnya
                 </span>
               )}
 
@@ -974,8 +1033,8 @@ function Profil() {
           <div>
             <h3>Keluar dari akun</h3>
             <p>
-              Kamu dapat masuk kembali menggunakan email dan password yang sudah
-              terdaftar.
+              Kamu dapat masuk kembali menggunakan email dan password yang
+              sudah terdaftar.
             </p>
           </div>
 

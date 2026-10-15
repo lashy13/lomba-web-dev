@@ -1,10 +1,9 @@
-/* global process, require, module, __dirname */
+/* global process, require, module */
+
+require("dotenv").config();
 
 const express = require("express");
 const cors = require("cors");
-const path = require("path");
-const fs = require("fs");
-require("dotenv").config();
 
 const db = require("./config/database");
 
@@ -18,27 +17,14 @@ const categoryRoutes = require("./routes/categoryRoutes");
 const reportRoutes = require("./routes/reportRoutes");
 const notificationRoutes = require("./routes/notificationRoutes");
 
+const { verifyToken } = require("./middleware/authMiddleware");
+
 // ========================================
 // INITIALIZE EXPRESS
 // ========================================
 
 const app = express();
 const PORT = Number(process.env.PORT) || 5000;
-
-// ========================================
-// UPLOAD DIRECTORY
-// ========================================
-
-// Folder penyimpanan foto profil.
-// Pastikan folder ini berada di lokasi yang persisten
-// pada platform hosting yang kamu gunakan.
-const profileUploadDir = path.join(
-  __dirname,
-  "uploads",
-  "profiles"
-);
-
-fs.mkdirSync(profileUploadDir, { recursive: true });
 
 // ========================================
 // CORS CONFIGURATION
@@ -76,23 +62,6 @@ app.use(
 
 app.use(express.json({ limit: "5mb" }));
 app.use(express.urlencoded({ extended: true }));
-
-// ========================================
-// STATIC PROFILE IMAGES
-// ========================================
-
-// Contoh URL:
-// https://domain-backend/uploads/profiles/nama-file.png
-
-app.use(
-  "/uploads/profiles",
-  express.static(profileUploadDir, {
-    dotfiles: "deny",
-    index: false,
-    fallthrough: true,
-    maxAge: "1d",
-  })
-);
 
 // ========================================
 // ROOT ENDPOINT
@@ -160,8 +129,6 @@ app.use("/api/auth/forgot-password", passwordResetRoutes);
 // ========================================
 // CURRENT USER
 // ========================================
-
-const { verifyToken } = require("./middleware/authMiddleware");
 
 app.get("/api/auth/me", verifyToken, (req, res) => {
   return res.status(200).json({
@@ -243,7 +210,6 @@ const server = app.listen(PORT, "0.0.0.0", () => {
   console.log("LaporKita API berhasil dijalankan.");
   console.log(`Port: ${PORT}`);
   console.log(`Allowed origins: ${allowedOrigins.join(", ")}`);
-  console.log(`Profile upload directory: ${profileUploadDir}`);
   console.log("------------------------------------");
 });
 
