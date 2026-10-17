@@ -1,3 +1,4 @@
+
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import "../styles/profil.css";
@@ -7,12 +8,7 @@ const API_URL = (
 ).replace(/\/+$/, "");
 
 const MAX_IMAGE_SIZE = 2 * 1024 * 1024;
-
 const ALLOWED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp"];
-
-// ==================================================
-// UTILITAS FOTO PROFIL
-// ==================================================
 
 function getStoredImage(userData) {
   if (!userData) return "";
@@ -48,18 +44,21 @@ function getImageUrl(image) {
 
   if (!imagePath) return "";
 
-  // Foto permanen harus berasal dari Cloudinary.
-  if (isCloudinaryUrl(imagePath)) {
-    return imagePath;
+  // URL Cloudinary merupakan format foto profil yang diharapkan.
+  if (isCloudinaryUrl(imagePath)) return imagePath;
+
+  // Mendukung preview lokal sebelum unggahan selesai.
+  if (imagePath.startsWith("blob:")) return imagePath;
+
+  // Mendukung URL HTTPS lain jika backend memang menggunakannya.
+  try {
+    const url = new URL(imagePath);
+
+    if (url.protocol === "https:") return imagePath;
+  } catch {
+    // URL tidak valid.
   }
 
-  // Preview lokal hanya digunakan selama proses upload.
-  if (imagePath.startsWith("blob:")) {
-    return imagePath;
-  }
-
-  // Data URL tidak digunakan sebagai penyimpanan permanen.
-  // Path lokal lama juga tidak digunakan lagi.
   return "";
 }
 
@@ -73,13 +72,8 @@ function mergeUserData(returnedUser = {}) {
   };
 }
 
-// ==================================================
-// KOMPONEN PROFIL
-// ==================================================
-
 function Profil() {
   const navigate = useNavigate();
-
   const fileInputRef = useRef(null);
   const previewUrlRef = useRef("");
 
@@ -91,14 +85,12 @@ function Profil() {
   const [isEditing, setIsEditing] = useState(false);
   const [showPhotoMenu, setShowPhotoMenu] = useState(false);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
+  const [showDeletePhotoModal, setShowDeletePhotoModal] = useState(false);
 
   const [reports, setReports] = useState([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-
-  // ==================================================
-  // MEMBERSIHKAN PREVIEW LOKAL
-  // ==================================================
+  const [errorMessage, setErrorMessage] = useState("");
 
   const clearPreview = useCallback(() => {
     if (previewUrlRef.current) {
@@ -108,14 +100,8 @@ function Profil() {
   }, []);
 
   useEffect(() => {
-    return () => {
-      clearPreview();
-    };
+    return () => clearPreview();
   }, [clearPreview]);
-
-  // ==================================================
-  // REQUEST API
-  // ==================================================
 
   const apiRequest = useCallback(
     async (path, options = {}) => {
@@ -165,15 +151,13 @@ function Profil() {
     [navigate],
   );
 
-  // ==================================================
-  // MEMUAT PROFIL DAN LAPORAN
-  // ==================================================
-
+  // Memuat profil dan laporan pengguna.
   useEffect(() => {
     let cancelled = false;
 
     async function loadData() {
       setLoading(true);
+      setErrorMessage("");
 
       try {
         const token = localStorage.getItem("token");
@@ -211,16 +195,14 @@ function Profil() {
           return;
         }
 
-        // Database adalah sumber utama data profil.
         const savedUser = mergeUserData(currentUser);
 
         setUser(savedUser);
         setUsername(savedUser.username || "");
         setEmail(savedUser.email || "");
-        setProfileImage(savedUser.profileImage);
+        setProfileImage(savedUser.profileImage || "");
 
         localStorage.setItem("user", JSON.stringify(savedUser));
-
         localStorage.setItem("isLoggedIn", "true");
 
         if (reportsResult.status === "fulfilled") {
@@ -234,24 +216,15 @@ function Profil() {
 
           setReports(reportList);
         } else {
-          console.error("Gagal memuat laporan:", reportsResult.reason);
-
           setReports([]);
         }
       } catch (error) {
         if (cancelled) return;
 
         console.error("Gagal memuat profil:", error);
-
-        if (localStorage.getItem("token")) {
-          alert(
-            error.message || "Profil gagal dimuat. Periksa koneksi backend.",
-          );
-        }
+        setErrorMessage(error.message || "Gagal memuat data profil.");
       } finally {
-        if (!cancelled) {
-          setLoading(false);
-        }
+        if (!cancelled) setLoading(false);
       }
     }
 
@@ -262,67 +235,37 @@ function Profil() {
     };
   }, [apiRequest, navigate]);
 
-  // ==================================================
-  // STATISTIK LAPORAN
-  // ==================================================
-
+  // Statistik laporan.
   const statistics = useMemo(() => {
     const total = reports.length;
 
-    const waiting = reports.filter(
-      (report) => report.status === "Menunggu",
-    ).length;
-
-    const verified = reports.filter(
-      (report) => report.status === "Diverifikasi",
-    ).length;
-
     const process = reports.filter(
-      (report) => report.status === "Dalam Proses",
+      (report) =>
+        report.status === "Dalam Proses" ||
+        report.status === "Diverifikasi",
     ).length;
 
     const completed = reports.filter(
       (report) => report.status === "Selesai",
     ).length;
 
-    return {
-      total,
-      waiting,
-      verified,
-      process,
-      completed,
-    };
+    return { total, process, completed };
   }, [reports]);
 
-  // ==================================================
-  // POIN WARGA
-  // ==================================================
-
+  // Poin kontribusi.
   const points = useMemo(
     () =>
       reports.reduce((total, report) => {
-        let reportPoints = 10;
+        let point = 10;
 
-        if (report.status === "Diverifikasi") {
-          reportPoints += 10;
-        }
+        if (report.status === "Diverifikasi") point += 10;
+        if (report.status === "Dalam Proses") point += 15;
+        if (report.status === "Selesai") point += 30;
 
-        if (report.status === "Dalam Proses") {
-          reportPoints += 15;
-        }
-
-        if (report.status === "Selesai") {
-          reportPoints += 30;
-        }
-
-        return total + reportPoints;
+        return total + point;
       }, 0),
     [reports],
   );
-
-  // ==================================================
-  // LEVEL WARGA
-  // ==================================================
 
   const level = useMemo(() => {
     if (points >= 500) return 5;
@@ -376,10 +319,7 @@ function Profil() {
             100,
         );
 
-  // ==================================================
-  // BADGES
-  // ==================================================
-
+  // Badge pencapaian.
   const badges = useMemo(
     () => [
       {
@@ -405,7 +345,7 @@ function Profil() {
       },
       {
         id: "guardian",
-        icon: "◆",
+        icon: "🛡",
         name: "Pengawas Kota",
         description: "Memiliki 10 laporan",
         unlocked: statistics.total >= 10,
@@ -414,25 +354,20 @@ function Profil() {
     [statistics],
   );
 
-  // ==================================================
-  // UPDATE USER
-  // ==================================================
-
+  // Menyelaraskan state profil dengan data terbaru.
   const updateUserState = useCallback((updatedUser) => {
-    setUser(updatedUser);
-    setUsername(updatedUser.username || "");
-    setEmail(updatedUser.email || "");
-    setProfileImage(getImageUrl(getStoredImage(updatedUser)));
+    const normalizedUser = mergeUserData(updatedUser);
 
-    localStorage.setItem("user", JSON.stringify(updatedUser));
+    setUser(normalizedUser);
+    setUsername(normalizedUser.username || "");
+    setEmail(normalizedUser.email || "");
+    setProfileImage(normalizedUser.profileImage || "");
 
+    localStorage.setItem("user", JSON.stringify(normalizedUser));
     window.dispatchEvent(new Event("userUpdated"));
   }, []);
 
-  // ==================================================
-  // UPLOAD FOTO PROFIL
-  // ==================================================
-
+  // Memilih dan mengunggah foto profil.
   const handleImageChange = async (event) => {
     const file = event.target.files?.[0];
 
@@ -442,26 +377,18 @@ function Profil() {
     if (!file) return;
 
     if (!ALLOWED_IMAGE_TYPES.includes(file.type)) {
-      alert("Gunakan gambar JPG, PNG, atau WebP.");
+      setErrorMessage("Gunakan format gambar JPG, PNG, atau WebP.");
       return;
     }
 
     if (file.size > MAX_IMAGE_SIZE) {
-      alert("Ukuran foto maksimal 2 MB.");
+      setErrorMessage("Ukuran foto maksimal 2 MB.");
       return;
     }
-
-    if (!user?.id) {
-      alert("Data akun tidak ditemukan. Silakan login kembali.");
-      return;
-    }
-
-    if (saving) return;
 
     const token = localStorage.getItem("token");
 
     if (!token) {
-      alert("Silakan login kembali.");
       navigate("/login");
       return;
     }
@@ -473,13 +400,12 @@ function Profil() {
     previewUrlRef.current = previewUrl;
 
     setSaving(true);
+    setErrorMessage("");
     setShowPhotoMenu(false);
     setProfileImage(previewUrl);
 
     try {
       const formData = new FormData();
-
-      // Harus sesuai dengan upload.single("photo") di backend.
       formData.append("photo", file);
 
       const response = await fetch(`${API_URL}/api/auth/profile/photo`, {
@@ -496,7 +422,6 @@ function Profil() {
         localStorage.removeItem("token");
         localStorage.removeItem("user");
         localStorage.removeItem("isLoggedIn");
-
         window.dispatchEvent(new Event("userUpdated"));
 
         navigate("/login", {
@@ -513,14 +438,14 @@ function Profil() {
 
       const savedImagePath =
         data.profileImage ||
+        data.profile_image ||
         data.user?.profile_image ||
         data.user?.profileImage ||
         data.user?.profile_image_url;
 
-      // Tolak respons yang masih menggunakan path lokal.
       if (!isCloudinaryUrl(savedImagePath)) {
         throw new Error(
-          "Backend belum mengembalikan URL Cloudinary. Periksa deployment backend.",
+          "Server belum mengembalikan URL foto Cloudinary yang valid.",
         );
       }
 
@@ -531,20 +456,12 @@ function Profil() {
         profileImage: savedImagePath,
       };
 
-      setUser(updatedUser);
-      setProfileImage(savedImagePath);
-
-      localStorage.setItem("user", JSON.stringify(updatedUser));
-
-      window.dispatchEvent(new Event("userUpdated"));
-
-      alert("Foto profil berhasil disimpan.");
+      updateUserState(updatedUser);
+      setErrorMessage("");
     } catch (error) {
-      console.error("Gagal mengunggah foto profil:", error);
-
+      console.error("Gagal mengunggah foto:", error);
       setProfileImage(previousImage);
-
-      alert(error.message || "Foto gagal diunggah. Silakan coba kembali.");
+      setErrorMessage(error.message || "Gagal mengunggah foto profil.");
     } finally {
       if (previewUrlRef.current === previewUrl) {
         URL.revokeObjectURL(previewUrl);
@@ -555,33 +472,12 @@ function Profil() {
     }
   };
 
-  // ==================================================
-  // MEMBUKA PEMILIH FOTO
-  // ==================================================
-
-  const handleChangePhoto = () => {
-    if (saving) return;
-
-    setShowPhotoMenu(false);
-
-    window.setTimeout(() => {
-      fileInputRef.current?.click();
-    }, 50);
-  };
-
-  // ==================================================
-  // HAPUS FOTO PROFIL
-  // ==================================================
-
+  // Menghapus foto setelah pengguna mengonfirmasi.
   const handleRemoveImage = async () => {
     if (!profileImage || saving) return;
 
-    const confirmed = window.confirm("Yakin ingin menghapus foto profil?");
-
-    if (!confirmed) return;
-
     setSaving(true);
-    setShowPhotoMenu(false);
+    setErrorMessage("");
 
     try {
       const data = await apiRequest("/api/auth/profile/photo", {
@@ -593,155 +489,115 @@ function Profil() {
         ...(data.user || {}),
         profile_image: null,
         profileImage: "",
+        profile_image_url: null,
       };
 
-      setUser(updatedUser);
+      updateUserState(updatedUser);
+
       setProfileImage("");
-
-      localStorage.setItem("user", JSON.stringify(updatedUser));
-
-      if (fileInputRef.current) {
-        fileInputRef.current.value = "";
-      }
-
-      window.dispatchEvent(new Event("userUpdated"));
-
-      alert("Foto profil berhasil dihapus.");
+      setShowPhotoMenu(false);
+      setShowDeletePhotoModal(false);
     } catch (error) {
-      console.error("Gagal menghapus foto profil:", error);
-
-      alert(error.message || "Foto gagal dihapus. Silakan coba kembali.");
+      console.error("Gagal menghapus foto:", error);
+      setErrorMessage(error.message || "Gagal menghapus foto profil.");
     } finally {
       setSaving(false);
     }
   };
 
-  // ==================================================
-  // SIMPAN PERUBAHAN NAMA
-  // ==================================================
-
+  // Menyimpan perubahan nama pengguna.
   const handleSave = async (event) => {
     event.preventDefault();
 
-    const trimmedUsername = username.trim();
+    const trimmed = username.trim();
 
-    if (trimmedUsername.length < 2) {
-      alert("Nama minimal 2 karakter.");
+    if (trimmed.length < 2 || trimmed.length > 100) {
+      setErrorMessage(
+        "Nama pengguna harus antara 2 hingga 100 karakter.",
+      );
       return;
     }
-
-    if (trimmedUsername.length > 100) {
-      alert("Nama maksimal 100 karakter.");
-      return;
-    }
-
-    if (!user?.id) {
-      alert("Data akun tidak ditemukan. Silakan login kembali.");
-      return;
-    }
-
-    if (saving) return;
 
     setSaving(true);
+    setErrorMessage("");
 
     try {
       const data = await apiRequest("/api/auth/profile", {
         method: "PATCH",
-        body: JSON.stringify({
-          username: trimmedUsername,
-        }),
+        body: JSON.stringify({ username: trimmed }),
       });
 
       const returnedUser = data.user || {};
-
-      // Jika respons edit nama tidak menyertakan foto,
-      // pertahankan URL foto Cloudinary yang sudah ada.
-      const serverImage = getStoredImage(returnedUser);
-      const currentImage = getStoredImage(user);
-
-      const image = serverImage || currentImage || "";
+      const image = getStoredImage(returnedUser) || getStoredImage(user);
 
       const updatedUser = {
         ...user,
         ...returnedUser,
-        username: returnedUser.username || trimmedUsername,
-        email: returnedUser.email || user.email || "",
+        username: returnedUser.username || trimmed,
         profile_image: image || null,
         profileImage: getImageUrl(image),
       };
 
       updateUserState(updatedUser);
-
       setIsEditing(false);
-      setShowPhotoMenu(false);
-
-      alert("Profil berhasil diperbarui.");
     } catch (error) {
       console.error("Gagal menyimpan profil:", error);
-
-      alert(error.message || "Profil gagal disimpan. Silakan coba kembali.");
+      setErrorMessage(error.message || "Gagal menyimpan perubahan.");
     } finally {
       setSaving(false);
     }
   };
 
-  // ==================================================
-  // BATAL EDIT
-  // ==================================================
-
   const handleCancel = () => {
     setUsername(user?.username || "");
     setEmail(user?.email || "");
-
     setProfileImage(getImageUrl(getStoredImage(user)));
 
     setIsEditing(false);
     setShowPhotoMenu(false);
-
-    if (fileInputRef.current) {
-      fileInputRef.current.value = "";
-    }
+    setErrorMessage("");
   };
-
-  // ==================================================
-  // LOGOUT
-  // ==================================================
 
   const handleLogout = () => {
     localStorage.removeItem("token");
     localStorage.removeItem("isLoggedIn");
     localStorage.removeItem("user");
 
-    setShowLogoutModal(false);
-
     window.dispatchEvent(new Event("userUpdated"));
 
     navigate("/", { replace: true });
   };
 
-  // ==================================================
-  // LOADING
-  // ==================================================
-
+  // Tampilan loading.
   if (loading) {
     return (
       <main className="profil-page">
-        <div className="profil-container">
-          <p>Memuat profil...</p>
+        <div className="profil-container loading-container">
+          <div className="profil-spinner"></div>
+          <p>Memuat profil kamu...</p>
         </div>
       </main>
     );
   }
 
-  if (!user) return null;
-
-  // ==================================================
-  // TAMPILAN UTAMA
-  // ==================================================
+  if (!user) {
+    return (
+      <main className="profil-page">
+        <div className="profil-container">
+          <div className="profil-error">
+            <p>{errorMessage || "Data profil belum bisa ditampilkan."}</p>
+            <button type="button" onClick={() => navigate("/login")}>
+              Kembali ke Login
+            </button>
+          </div>
+        </div>
+      </main>
+    );
+  }
 
   return (
     <main className="profil-page">
-      <div className="profil-background">
+      <div className="profil-background" aria-hidden="true">
         <div className="profil-grid"></div>
         <div className="profil-orb profil-orb-one"></div>
         <div className="profil-orb profil-orb-two"></div>
@@ -749,20 +605,32 @@ function Profil() {
 
       <div className="profil-container">
         <Link to="/" className="profil-back">
-          ← Kembali ke Beranda
+          <span>←</span> Kembali ke Beranda
         </Link>
 
         <div className="profil-heading">
-          <span className="profil-label">AKUN LAPORKITA</span>
-
+          <span className="profil-label">PUSAT AKUN DIGITAL</span>
           <h1>Profil Saya</h1>
-
           <p>
-            Kelola akun, lihat aktivitas, dan pantau kontribusimu di LaporKita.
+            Kelola identitas, pantau statistik laporan, dan raih badge
+            pencapaianmu.
           </p>
         </div>
 
-        <section className="profil-card">
+        {errorMessage && (
+          <div className="profil-error" role="alert">
+            <span>{errorMessage}</span>
+            <button
+              type="button"
+              onClick={() => setErrorMessage("")}
+              aria-label="Tutup pesan"
+            >
+              ×
+            </button>
+          </div>
+        )}
+
+        <section className="profil-card glass-glow-border">
           <div className="profil-card-top">
             <div className="profil-avatar-wrapper">
               {profileImage ? (
@@ -770,13 +638,9 @@ function Profil() {
                   src={profileImage}
                   alt="Foto profil"
                   className="profil-avatar-image"
-                  onError={(event) => {
-                    console.error(
-                      "Foto profil gagal dimuat:",
-                      event.currentTarget.src,
-                    );
-
-                    event.currentTarget.onerror = null;
+                  onError={() => {
+                    // Jika URL gambar gagal dimuat, tampilkan avatar inisial.
+                    setProfileImage("");
                   }}
                 />
               ) : (
@@ -787,7 +651,6 @@ function Profil() {
 
               <input
                 ref={fileInputRef}
-                id="profileImage"
                 type="file"
                 accept="image/jpeg,image/png,image/webp"
                 onChange={handleImageChange}
@@ -800,12 +663,12 @@ function Profil() {
                   <button
                     type="button"
                     className="profil-camera"
-                    onClick={() => setShowPhotoMenu((value) => !value)}
-                    aria-label="Kelola foto profil"
+                    onClick={() => setShowPhotoMenu((previous) => !previous)}
+                    aria-label="Atur foto profil"
                     aria-expanded={showPhotoMenu}
                     disabled={saving}
                   >
-                    <svg viewBox="0 0 24 24" fill="none">
+                    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
                       <path
                         d="M4 8.5C4 7.67 4.67 7 5.5 7H8L9.4 5H14.6L16 7H18.5C19.33 7 20 7.67 20 8.5V17.5C20 18.33 19.33 19 18.5 19H5.5C4.67 19 4 18.33 4 17.5V8.5Z"
                         stroke="currentColor"
@@ -813,7 +676,6 @@ function Profil() {
                         strokeLinecap="round"
                         strokeLinejoin="round"
                       />
-
                       <circle
                         cx="12"
                         cy="13"
@@ -825,16 +687,19 @@ function Profil() {
                   </button>
 
                   {showPhotoMenu && (
-                    <div className="profil-photo-menu">
+                    <div className="profil-photo-menu glass-glow-border">
                       <button
                         type="button"
                         className="profil-photo-menu-item"
-                        onClick={handleChangePhoto}
+                        onClick={() => {
+                          setShowPhotoMenu(false);
+                          fileInputRef.current?.click();
+                        }}
+                        disabled={saving}
                       >
-                        <span className="profil-photo-menu-icon">+</span>
-
+                        <span>📁</span>
                         <span>
-                          {profileImage ? "Ganti foto" : "Tambah foto"}
+                          {profileImage ? "Ganti Foto" : "Unggah Foto"}
                         </span>
                       </button>
 
@@ -845,11 +710,14 @@ function Profil() {
                           <button
                             type="button"
                             className="profil-photo-menu-item profil-photo-delete"
-                            onClick={handleRemoveImage}
+                            onClick={() => {
+                              setShowPhotoMenu(false);
+                              setShowDeletePhotoModal(true);
+                            }}
+                            disabled={saving}
                           >
-                            <span className="profil-photo-menu-icon">×</span>
-
-                            <span>Hapus foto</span>
+                            <span>🗑️</span>
+                            <span>Hapus Foto</span>
                           </button>
                         </>
                       )}
@@ -865,7 +733,7 @@ function Profil() {
 
               <span className="profil-status">
                 <span className="profil-status-dot"></span>
-                Akun aktif
+                Akun Terverifikasi Aktif
               </span>
             </div>
           </div>
@@ -873,39 +741,37 @@ function Profil() {
           <div className="profil-divider"></div>
 
           <div className="profil-stats">
-            <div className="profil-stat-card">
-              <span className="profil-stat-icon">◎</span>
-
+            <div className="profil-stat-card glass-glow-border">
+              <span className="profil-stat-icon">📊</span>
               <div>
                 <strong>{statistics.total}</strong>
-                <span>Total laporan</span>
+                <span>Total Laporan</span>
               </div>
             </div>
 
-            <div className="profil-stat-card">
-              <span className="profil-stat-icon">◷</span>
-
+            <div className="profil-stat-card glass-glow-border">
+              <span className="profil-stat-icon">⚡</span>
               <div>
                 <strong>{statistics.process}</strong>
-                <span>Diproses</span>
+                <span>Dalam Proses</span>
               </div>
             </div>
 
-            <div className="profil-stat-card">
-              <span className="profil-stat-icon">✓</span>
-
+            <div className="profil-stat-card glass-glow-border">
+              <span className="profil-stat-icon">✨</span>
               <div>
                 <strong>{statistics.completed}</strong>
-                <span>Selesai</span>
+                <span>Selesai Ditangani</span>
               </div>
             </div>
           </div>
 
-          <div className="profil-level-card">
+          <div className="profil-level-card glass-glow-border">
             <div className="profil-level-header">
               <div>
-                <span className="profil-level-label">LEVEL WARGA</span>
-
+                <span className="profil-level-label">
+                  LEVEL KONTRIBUSI WARGA
+                </span>
                 <h3>
                   Level {level} — {levelName}
                 </h3>
@@ -913,17 +779,17 @@ function Profil() {
 
               <div className="profil-points">
                 <strong>{points}</strong>
-                <span>poin</span>
+                <span>Poin</span>
               </div>
             </div>
 
             <div
               className="profil-progress"
               role="progressbar"
-              aria-label="Progres level warga"
+              aria-valuenow={Math.round(progress)}
               aria-valuemin={0}
               aria-valuemax={100}
-              aria-valuenow={Math.round(progress)}
+              aria-label="Kemajuan level kontribusi"
             >
               <div
                 className="profil-progress-bar"
@@ -932,44 +798,38 @@ function Profil() {
             </div>
 
             <div className="profil-level-footer">
-              {level >= 5 ? (
-                <span>Level maksimum tercapai 🎉</span>
-              ) : (
-                <span>
-                  {Math.max(0, nextLevelPoints - points)} poin lagi menuju level
-                  berikutnya
-                </span>
-              )}
-
               <span>
-                {points} / {nextLevelPoints}
+                {level >= 5
+                  ? "Level Maksimum Tercapai 🎉"
+                  : `${Math.max(0, nextLevelPoints - points)} poin lagi ke level berikutnya`}
+              </span>
+              <span>
+                {points} / {nextLevelPoints} Poin
               </span>
             </div>
           </div>
 
           <div className="profil-badges-section">
             <div className="profil-section-heading">
-              <div>
-                <h3>Pencapaian</h3>
-                <p>Kumpulkan kontribusi dan dapatkan badge warga.</p>
-              </div>
+              <h3>Badge Pencapaian Warga</h3>
+              <p>Kumpulkan poin dan buka lencana kontribusi publik.</p>
             </div>
 
             <div className="profil-badges">
               {badges.map((badge) => (
                 <div
                   key={badge.id}
-                  className={`profil-badge ${
+                  className={`profil-badge glass-glow-border ${
                     badge.unlocked ? "unlocked" : "locked"
                   }`}
                 >
                   <div className="profil-badge-icon">{badge.icon}</div>
-
                   <div>
                     <strong>{badge.name}</strong>
-
                     <span>
-                      {badge.unlocked ? badge.description : "Belum terbuka"}
+                      {badge.unlocked
+                        ? badge.description
+                        : "Belum terbuka"}
                     </span>
                   </div>
                 </div>
@@ -982,16 +842,18 @@ function Profil() {
           <form className="profil-form" onSubmit={handleSave}>
             <div className="profil-section-title">
               <div>
-                <h3>Informasi akun</h3>
-
-                <p>Informasi dasar yang digunakan pada akun LaporKita.</p>
+                <h3>Informasi Akun Utama</h3>
+                <p>Ubah nama panggilan publik atau tinjau email kamu.</p>
               </div>
 
               {!isEditing && (
                 <button
                   type="button"
                   className="profil-edit-button"
-                  onClick={() => setIsEditing(true)}
+                  onClick={() => {
+                    setIsEditing(true);
+                    setErrorMessage("");
+                  }}
                 >
                   Edit Profil
                 </button>
@@ -999,36 +861,38 @@ function Profil() {
             </div>
 
             <div className="profil-field">
-              <label htmlFor="username">Nama pengguna</label>
+              <label htmlFor="username">Nama Pengguna</label>
 
               <div className="profil-input-wrapper">
-                <span className="profil-input-icon">◉</span>
-
+                <span className="profil-input-icon">👤</span>
                 <input
                   id="username"
                   type="text"
                   value={username}
                   onChange={(event) => setUsername(event.target.value)}
                   disabled={!isEditing || saving}
-                  placeholder="Masukkan nama"
-                  maxLength={100}
-                  minLength={2}
                   required
+                  minLength={2}
+                  maxLength={100}
                 />
               </div>
             </div>
 
             <div className="profil-field">
-              <label htmlFor="email">Email</label>
+              <label htmlFor="email">Email Terdaftar</label>
 
               <div className="profil-input-wrapper">
-                <span className="profil-input-icon">@</span>
-
-                <input id="email" type="email" value={email} disabled />
+                <span className="profil-input-icon">✉</span>
+                <input
+                  id="email"
+                  type="email"
+                  value={email}
+                  disabled
+                />
               </div>
 
               <small>
-                Email digunakan sebagai identitas akun dan tidak dapat diubah.
+                Email terikat secara permanen pada sistem keamanan akun.
               </small>
             </div>
 
@@ -1056,36 +920,36 @@ function Profil() {
         </section>
 
         <section className="profil-quick-actions">
-          <Link to="/laporan-saya" className="profil-quick-card">
-            <span className="profil-quick-icon">◎</span>
-
+          <Link
+            to="/laporan-saya"
+            className="profil-quick-card glass-glow-border"
+          >
+            <span className="profil-quick-icon">📋</span>
             <span>
               <strong>Laporan Saya</strong>
-              <small>Lihat dan pantau semua laporanmu</small>
+              <small>Pantau status laporan yang pernah kamu buat</small>
             </span>
-
             <b>→</b>
           </Link>
 
-          <Link to="/notifikasi" className="profil-quick-card">
-            <span className="profil-quick-icon">♢</span>
-
+          <Link
+            to="/notifikasi"
+            className="profil-quick-card glass-glow-border"
+          >
+            <span className="profil-quick-icon">🔔</span>
             <span>
-              <strong>Notifikasi</strong>
-              <small>Lihat perkembangan laporan terbaru</small>
+              <strong>Pusat Notifikasi</strong>
+              <small>Cek pembaruan aduan secara real-time</small>
             </span>
-
             <b>→</b>
           </Link>
         </section>
 
-        <section className="profil-danger-card">
+        <section className="profil-danger-card glass-glow-border">
           <div>
-            <h3>Keluar dari akun</h3>
-
+            <h3>Sesi Akun Aktif</h3>
             <p>
-              Kamu dapat masuk kembali menggunakan email dan password yang sudah
-              terdaftar.
+              Keluar dari perangkat ini jika kamu menggunakan komputer umum.
             </p>
           </div>
 
@@ -1094,29 +958,78 @@ function Profil() {
             className="profil-logout-button"
             onClick={() => setShowLogoutModal(true)}
           >
-            Keluar
+            Keluar Akun
           </button>
         </section>
       </div>
 
+      {/* Modal konfirmasi hapus foto */}
+      {showDeletePhotoModal && (
+        <div
+          className="profil-modal-overlay"
+          onClick={() => {
+            if (!saving) setShowDeletePhotoModal(false);
+          }}
+        >
+          <div
+            className="profil-modal glass-glow-border"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="delete-photo-title"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="profil-modal-icon">🗑️</div>
+
+            <h3 id="delete-photo-title">Hapus Foto Profil?</h3>
+
+            <p>
+              Foto profil kamu akan dihapus dan diganti dengan avatar inisial.
+              Kamu bisa mengunggah foto baru kapan saja.
+            </p>
+
+            <div className="profil-modal-actions">
+              <button
+                type="button"
+                className="profil-modal-cancel"
+                onClick={() => setShowDeletePhotoModal(false)}
+                disabled={saving}
+              >
+                Batal
+              </button>
+
+              <button
+                type="button"
+                className="profil-modal-logout"
+                onClick={handleRemoveImage}
+                disabled={saving}
+              >
+                {saving ? "Menghapus..." : "Ya, Hapus Foto"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal konfirmasi logout */}
       {showLogoutModal && (
         <div
           className="profil-modal-overlay"
           onClick={() => setShowLogoutModal(false)}
         >
           <div
-            className="profil-modal"
-            onClick={(event) => event.stopPropagation()}
+            className="profil-modal glass-glow-border"
             role="dialog"
             aria-modal="true"
-            aria-labelledby="profil-logout-title"
+            aria-labelledby="logout-title"
+            onClick={(event) => event.stopPropagation()}
           >
-            <div className="profil-modal-icon">↗</div>
+            <div className="profil-modal-icon">⚠️</div>
 
-            <h3 id="profil-logout-title">Keluar dari akun?</h3>
+            <h3 id="logout-title">Keluar dari Akun?</h3>
 
             <p>
-              Kamu harus masuk kembali untuk mengakses fitur akun LaporKita.
+              Kamu harus masuk kembali menggunakan akun LaporKita untuk
+              mengakses fitur interaktif.
             </p>
 
             <div className="profil-modal-actions">

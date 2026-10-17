@@ -1,14 +1,16 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 
 import "../styles/buat-laporan.css";
 
-const API_WILAYAH = "https://www.emsifa.com/api-wilayah-indonesia/api";
+const API_WILAYAH =
+  "https://www.emsifa.com/api-wilayah-indonesia/api";
 
 const API_URL = (
   import.meta.env.VITE_API_URL ||
   "https://laporkita.lashy.blitz.cloud"
 ).replace(/\/+$/, "");
+
 const kategoriId = {
   jalan: 1,
   fasilitas: 2,
@@ -40,12 +42,12 @@ const normalizeName = (value) =>
 
 async function fetchJSON(url, options = {}) {
   const response = await fetch(url, options);
-
   const result = await response.json().catch(() => null);
 
   if (!response.ok) {
     throw new Error(
-      result?.message || `Permintaan gagal dengan status ${response.status}.`,
+      result?.message ||
+        `Permintaan gagal dengan status ${response.status}.`,
     );
   }
 
@@ -54,6 +56,7 @@ async function fetchJSON(url, options = {}) {
 
 function BuatLaporan() {
   const navigate = useNavigate();
+  const photoInputRef = useRef(null);
 
   const [provinces, setProvinces] = useState([]);
   const [regencies, setRegencies] = useState([]);
@@ -101,9 +104,10 @@ function BuatLaporan() {
       setLoadingProvince(true);
 
       try {
-        const data = await fetchJSON(`${API_WILAYAH}/provinces.json`, {
-          signal: controller.signal,
-        });
+        const data = await fetchJSON(
+          `${API_WILAYAH}/provinces.json`,
+          { signal: controller.signal },
+        );
 
         if (!Array.isArray(data)) {
           throw new Error("Format data provinsi tidak valid.");
@@ -132,9 +136,7 @@ function BuatLaporan() {
   // ========================================
 
   useEffect(() => {
-    if (!locationData.provinceId) {
-      return;
-    }
+    if (!locationData.provinceId) return;
 
     const controller = new AbortController();
 
@@ -174,9 +176,7 @@ function BuatLaporan() {
   // ========================================
 
   useEffect(() => {
-    if (!locationData.regencyId) {
-      return;
-    }
+    if (!locationData.regencyId) return;
 
     const controller = new AbortController();
 
@@ -216,9 +216,7 @@ function BuatLaporan() {
   // ========================================
 
   useEffect(() => {
-    if (!locationData.districtId) {
-      return;
-    }
+    if (!locationData.districtId) return;
 
     const controller = new AbortController();
 
@@ -259,8 +257,9 @@ function BuatLaporan() {
 
   const handleProvinceChange = (event) => {
     const provinceId = event.target.value;
-
-    const selected = provinces.find((item) => String(item.id) === provinceId);
+    const selected = provinces.find(
+      (item) => String(item.id) === provinceId,
+    );
 
     setLocationData((previous) => ({
       ...previous,
@@ -287,8 +286,9 @@ function BuatLaporan() {
 
   const handleRegencyChange = (event) => {
     const regencyId = event.target.value;
-
-    const selected = regencies.find((item) => String(item.id) === regencyId);
+    const selected = regencies.find(
+      (item) => String(item.id) === regencyId,
+    );
 
     setLocationData((previous) => ({
       ...previous,
@@ -312,8 +312,9 @@ function BuatLaporan() {
 
   const handleDistrictChange = (event) => {
     const districtId = event.target.value;
-
-    const selected = districts.find((item) => String(item.id) === districtId);
+    const selected = districts.find(
+      (item) => String(item.id) === districtId,
+    );
 
     setLocationData((previous) => ({
       ...previous,
@@ -334,8 +335,9 @@ function BuatLaporan() {
 
   const handleVillageChange = (event) => {
     const villageId = event.target.value;
-
-    const selected = villages.find((item) => String(item.id) === villageId);
+    const selected = villages.find(
+      (item) => String(item.id) === villageId,
+    );
 
     setLocationData((previous) => ({
       ...previous,
@@ -353,12 +355,16 @@ function BuatLaporan() {
 
   const getCurrentLocation = () => {
     if (!navigator.geolocation) {
-      setLocationError("Browser kamu tidak mendukung fitur lokasi.");
+      setLocationError(
+        "Browser kamu tidak mendukung fitur lokasi.",
+      );
       return;
     }
 
     if (provinces.length === 0) {
-      setLocationError("Data provinsi belum tersedia. Coba lagi sebentar.");
+      setLocationError(
+        "Data provinsi belum tersedia. Coba lagi sebentar.",
+      );
       return;
     }
 
@@ -384,14 +390,19 @@ function BuatLaporan() {
           );
 
           if (!response.ok) {
-            throw new Error("Gagal mendapatkan alamat dari koordinat GPS.");
+            throw new Error(
+              "Gagal mendapatkan alamat dari koordinat GPS.",
+            );
           }
 
           const result = await response.json();
           const address = result.address || {};
 
           const provinceName =
-            address.state || address.province || address.region || "";
+            address.state ||
+            address.province ||
+            address.region ||
+            "";
 
           const regencyName =
             address.city ||
@@ -414,12 +425,16 @@ function BuatLaporan() {
             "";
 
           const selectedProvince = provinces.find(
-            (item) => normalizeName(item.name) === normalizeName(provinceName),
+            (item) =>
+              normalizeName(item.name) ===
+              normalizeName(provinceName),
           );
 
           setLocationData((previous) => ({
             ...previous,
-            provinceId: selectedProvince ? String(selectedProvince.id) : "",
+            provinceId: selectedProvince
+              ? String(selectedProvince.id)
+              : "",
             provinsi: selectedProvince?.name || provinceName,
             regencyId: "",
             districtId: "",
@@ -451,10 +466,10 @@ function BuatLaporan() {
 
           setRegencies(regencyData);
 
-          const normalizedRegency = normalizeName(regencyName);
-
           const selectedRegency = regencyData.find(
-            (item) => normalizeName(item.name) === normalizedRegency,
+            (item) =>
+              normalizeName(item.name) ===
+              normalizeName(regencyName),
           );
 
           if (!selectedRegency) {
@@ -478,10 +493,10 @@ function BuatLaporan() {
 
           setDistricts(districtData);
 
-          const normalizedDistrict = normalizeName(districtName);
-
           const selectedDistrict = districtData.find(
-            (item) => normalizeName(item.name) === normalizedDistrict,
+            (item) =>
+              normalizeName(item.name) ===
+              normalizeName(districtName),
           );
 
           if (!selectedDistrict) {
@@ -505,10 +520,10 @@ function BuatLaporan() {
 
           setVillages(villageData);
 
-          const normalizedVillage = normalizeName(villageName);
-
           const selectedVillage = villageData.find(
-            (item) => normalizeName(item.name) === normalizedVillage,
+            (item) =>
+              normalizeName(item.name) ===
+              normalizeName(villageName),
           );
 
           if (!selectedVillage) {
@@ -536,7 +551,6 @@ function BuatLaporan() {
           setLocationLoading(false);
         }
       },
-
       (error) => {
         setLocationLoading(false);
 
@@ -549,12 +563,15 @@ function BuatLaporan() {
             "Lokasi tidak ditemukan. Pastikan layanan lokasi perangkat aktif.",
           );
         } else if (error.code === 3) {
-          setLocationError("Pencarian lokasi terlalu lama. Silakan coba lagi.");
+          setLocationError(
+            "Pencarian lokasi terlalu lama. Silakan coba lagi.",
+          );
         } else {
-          setLocationError("Terjadi kesalahan saat mengambil lokasi.");
+          setLocationError(
+            "Terjadi kesalahan saat mengambil lokasi.",
+          );
         }
       },
-
       {
         enableHighAccuracy: true,
         timeout: 15000,
@@ -574,10 +591,16 @@ function BuatLaporan() {
 
     setPhotoError("");
 
-    const allowedTypes = ["image/jpeg", "image/png", "image/webp"];
+    const allowedTypes = [
+      "image/jpeg",
+      "image/png",
+      "image/webp",
+    ];
 
     if (!allowedTypes.includes(file.type)) {
-      setPhotoError("Gunakan foto JPEG, PNG, atau WebP.");
+      setPhotoError(
+        "Gunakan foto JPEG, PNG, atau WebP.",
+      );
       event.target.value = "";
       return;
     }
@@ -592,7 +615,9 @@ function BuatLaporan() {
 
     reader.onload = () => {
       if (typeof reader.result !== "string") {
-        setPhotoError("Foto gagal dibaca. Silakan pilih foto lain.");
+        setPhotoError(
+          "Foto gagal dibaca. Silakan pilih foto lain.",
+        );
         return;
       }
 
@@ -601,7 +626,9 @@ function BuatLaporan() {
     };
 
     reader.onerror = () => {
-      setPhotoError("Foto gagal dibaca. Silakan coba lagi.");
+      setPhotoError(
+        "Foto gagal dibaca. Silakan coba lagi.",
+      );
     };
 
     reader.readAsDataURL(file);
@@ -612,10 +639,8 @@ function BuatLaporan() {
     setPhotoPreview("");
     setPhotoError("");
 
-    const input = document.getElementById("foto");
-
-    if (input) {
-      input.value = "";
+    if (photoInputRef.current) {
+      photoInputRef.current.value = "";
     }
   };
 
@@ -634,13 +659,21 @@ function BuatLaporan() {
     let user;
 
     try {
-      user = JSON.parse(localStorage.getItem("user") || "null");
+      user = JSON.parse(
+        localStorage.getItem("user") || "null",
+      );
     } catch {
       user = null;
     }
 
-    if (!token || !user || localStorage.getItem("isLoggedIn") !== "true") {
-      alert("Silakan login terlebih dahulu untuk membuat laporan.");
+    if (
+      !token ||
+      !user ||
+      localStorage.getItem("isLoggedIn") !== "true"
+    ) {
+      alert(
+        "Silakan login terlebih dahulu untuk membuat laporan.",
+      );
       navigate("/login");
       return;
     }
@@ -669,7 +702,9 @@ function BuatLaporan() {
     const description = form.elements.deskripsi.value.trim();
 
     if (!title || !description || !detailLokasi.trim()) {
-      alert("Judul, deskripsi, dan detail lokasi wajib diisi.");
+      alert(
+        "Judul, deskripsi, dan detail lokasi wajib diisi.",
+      );
       return;
     }
 
@@ -708,18 +743,22 @@ function BuatLaporan() {
         photo_name: selectedPhoto?.name || null,
       };
 
-      const result = await fetchJSON(`${API_URL}/api/reports`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
+      const result = await fetchJSON(
+        `${API_URL}/api/reports`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify(payload),
         },
-        body: JSON.stringify(payload),
-      });
+      );
 
       if (result?.success !== true) {
         throw new Error(
-          result?.message || "Server belum mengonfirmasi keberhasilan laporan.",
+          result?.message ||
+            "Server belum mengonfirmasi keberhasilan laporan.",
         );
       }
 
@@ -732,7 +771,8 @@ function BuatLaporan() {
       console.error("CREATE REPORT ERROR:", error);
 
       alert(
-        error.message || "Laporan gagal dikirim. Periksa koneksi dan backend.",
+        error.message ||
+          "Laporan gagal dikirim. Periksa koneksi dan backend.",
       );
     } finally {
       setSubmitting(false);
@@ -746,9 +786,9 @@ function BuatLaporan() {
   return (
     <main className="buat-laporan-page">
       <div className="buat-laporan-background">
-        <div className="buat-laporan-grid"></div>
-        <div className="buat-laporan-orb buat-laporan-orb-one"></div>
-        <div className="buat-laporan-orb buat-laporan-orb-two"></div>
+        <div className="buat-laporan-grid" />
+        <div className="buat-laporan-orb buat-laporan-orb-one" />
+        <div className="buat-laporan-orb buat-laporan-orb-two" />
       </div>
 
       <header className="buat-laporan-header">
@@ -763,21 +803,24 @@ function BuatLaporan() {
 
         <div className="buat-laporan-heading">
           <div className="buat-laporan-label">
-            <span className="buat-laporan-label-dot"></span>
+            <span className="buat-laporan-label-dot" />
             LAPORKITA
           </div>
 
           <h1>Sampaikan laporanmu</h1>
 
           <p>
-            Bantu kami mengetahui permasalahan di sekitarmu dengan memberikan
-            informasi yang jelas dan lengkap.
+            Bantu kami mengetahui permasalahan di sekitarmu
+            dengan memberikan informasi yang jelas dan lengkap.
           </p>
         </div>
       </header>
 
       <section className="buat-laporan-card">
-        <form className="buat-laporan-form" onSubmit={handleSubmit}>
+        <form
+          className="buat-laporan-form"
+          onSubmit={handleSubmit}
+        >
           {/* 01 — INFORMASI LAPORAN */}
 
           <div className="form-section">
@@ -786,7 +829,9 @@ function BuatLaporan() {
 
               <div>
                 <h2>Informasi laporan</h2>
-                <p>Jelaskan permasalahan yang ingin kamu laporkan.</p>
+                <p>
+                  Jelaskan permasalahan yang ingin kamu laporkan.
+                </p>
               </div>
             </div>
 
@@ -810,7 +855,12 @@ function BuatLaporan() {
                 Kategori <span>*</span>
               </label>
 
-              <select id="kategori" name="kategori" defaultValue="" required>
+              <select
+                id="kategori"
+                name="kategori"
+                defaultValue=""
+                required
+              >
                 <option value="" disabled>
                   Pilih kategori laporan
                 </option>
@@ -833,14 +883,14 @@ function BuatLaporan() {
               <textarea
                 id="deskripsi"
                 name="deskripsi"
-                rows="6"
+                rows={6}
                 placeholder="Jelaskan kondisi atau permasalahan yang kamu temukan secara rinci..."
                 required
-              ></textarea>
+              />
 
               <small>
-                Jelaskan kondisi masalah dan informasi lain yang dapat membantu
-                memahami laporan.
+                Jelaskan kondisi masalah dan informasi lain
+                yang dapat membantu memahami laporan.
               </small>
             </div>
           </div>
@@ -854,8 +904,8 @@ function BuatLaporan() {
               <div>
                 <h2>Lokasi kejadian</h2>
                 <p>
-                  Tentukan lokasi laporan melalui GPS atau pilih wilayah secara
-                  manual.
+                  Tentukan lokasi laporan melalui GPS atau
+                  pilih wilayah secara manual.
                 </p>
               </div>
             </div>
@@ -868,7 +918,9 @@ function BuatLaporan() {
 
                 <div className="location-detector-content">
                   <strong>Gunakan lokasi saya</strong>
-                  <p>GPS membantu mengisi wilayah secara otomatis.</p>
+                  <p>
+                    GPS membantu mengisi wilayah secara otomatis.
+                  </p>
                 </div>
               </div>
 
@@ -890,7 +942,7 @@ function BuatLaporan() {
               </button>
 
               {locationError && (
-                <div className="location-error">
+                <div className="location-error" role="alert">
                   <span>!</span>
                   <p>{locationError}</p>
                 </div>
@@ -911,12 +963,15 @@ function BuatLaporan() {
                   </div>
 
                   <div className="location-success-subtitle">
-                    Pilih wilayah secara manual jika hasil GPS belum sesuai.
+                    Pilih wilayah secara manual jika hasil GPS
+                    belum sesuai.
                   </div>
                 </div>
 
                 {locationFound && (
-                  <div className="location-status">GPS AKTIF</div>
+                  <div className="location-status">
+                    GPS AKTIF
+                  </div>
                 )}
               </div>
 
@@ -945,13 +1000,17 @@ function BuatLaporan() {
                 </div>
 
                 <div className="location-edit-field">
-                  <label htmlFor="kabupaten">Kabupaten / Kota</label>
+                  <label htmlFor="kabupaten">
+                    Kabupaten / Kota
+                  </label>
 
                   <select
                     id="kabupaten"
                     value={locationData.regencyId}
                     onChange={handleRegencyChange}
-                    disabled={!locationData.provinceId || loadingRegency}
+                    disabled={
+                      !locationData.provinceId || loadingRegency
+                    }
                     required
                   >
                     <option value="">
@@ -977,7 +1036,9 @@ function BuatLaporan() {
                     id="kecamatan"
                     value={locationData.districtId}
                     onChange={handleDistrictChange}
-                    disabled={!locationData.regencyId || loadingDistrict}
+                    disabled={
+                      !locationData.regencyId || loadingDistrict
+                    }
                     required
                   >
                     <option value="">
@@ -997,13 +1058,17 @@ function BuatLaporan() {
                 </div>
 
                 <div className="location-edit-field">
-                  <label htmlFor="desa">Desa / Kelurahan</label>
+                  <label htmlFor="desa">
+                    Desa / Kelurahan
+                  </label>
 
                   <select
                     id="desa"
                     value={locationData.villageId}
                     onChange={handleVillageChange}
-                    disabled={!locationData.districtId || loadingVillage}
+                    disabled={
+                      !locationData.districtId || loadingVillage
+                    }
                     required
                   >
                     <option value="">
@@ -1023,11 +1088,13 @@ function BuatLaporan() {
                 </div>
 
                 <div className="location-edit-field location-edit-field-full">
-                  <label htmlFor="alamat">Alamat terdeteksi</label>
+                  <label htmlFor="alamat">
+                    Alamat terdeteksi
+                  </label>
 
                   <textarea
                     id="alamat"
-                    rows="3"
+                    rows={3}
                     value={locationData.alamat}
                     onChange={(event) =>
                       setLocationData((previous) => ({
@@ -1036,13 +1103,13 @@ function BuatLaporan() {
                       }))
                     }
                     placeholder="Alamat lengkap..."
-                  ></textarea>
+                  />
 
                   <div className="location-address-help">
                     <span>i</span>
                     <p>
-                      Periksa kembali alamat yang terdeteksi dan sesuaikan jika
-                      diperlukan.
+                      Periksa kembali alamat yang terdeteksi
+                      dan sesuaikan jika diperlukan.
                     </p>
                   </div>
                 </div>
@@ -1054,37 +1121,46 @@ function BuatLaporan() {
 
                   <textarea
                     id="detailLokasi"
-                    rows="3"
+                    rows={3}
                     value={detailLokasi}
-                    onChange={(event) => setDetailLokasi(event.target.value)}
+                    onChange={(event) =>
+                      setDetailLokasi(event.target.value)
+                    }
                     placeholder="Contoh: di depan minimarket, dekat lampu merah, sebelah sekolah..."
                     required
-                  ></textarea>
+                  />
 
                   <small>
-                    Tambahkan patokan agar lokasi lebih mudah ditemukan.
+                    Tambahkan patokan agar lokasi lebih mudah
+                    ditemukan.
                   </small>
                 </div>
               </div>
 
-              {locationData.latitude && locationData.longitude && (
-                <div className="location-coordinate">
-                  <div>
-                    <span className="coordinate-label">Koordinat GPS</span>
-                    <strong>
-                      {locationData.latitude}, {locationData.longitude}
-                    </strong>
-                  </div>
+              {locationData.latitude &&
+                locationData.longitude && (
+                  <div className="location-coordinate">
+                    <div>
+                      <span className="coordinate-label">
+                        Koordinat GPS
+                      </span>
 
-                  <span className="coordinate-badge">GPS</span>
-                </div>
-              )}
+                      <strong>
+                        {locationData.latitude},{" "}
+                        {locationData.longitude}
+                      </strong>
+                    </div>
+
+                    <span className="coordinate-badge">GPS</span>
+                  </div>
+                )}
 
               <div className="location-edit-info">
                 <span>✎</span>
                 <p>
-                  Wilayah bisa diubah secara manual. Kecamatan mengikuti
-                  Kabupaten/Kota dan Desa/Kelurahan mengikuti Kecamatan.
+                  Wilayah bisa diubah secara manual. Kecamatan
+                  mengikuti Kabupaten/Kota dan Desa/Kelurahan
+                  mengikuti Kecamatan.
                 </p>
               </div>
             </div>
@@ -1092,13 +1168,13 @@ function BuatLaporan() {
             <div className="location-note">
               <span className="location-note-icon">i</span>
               <p>
-                Urutan wilayah: Provinsi → Kabupaten/Kota → Kecamatan →
-                Desa/Kelurahan.
+                Urutan wilayah: Provinsi → Kabupaten/Kota →
+                Kecamatan → Desa/Kelurahan.
               </p>
             </div>
           </div>
 
-          {/* 03 — FOTO */}
+          {/* 03 — FOTO PENDUKUNG */}
 
           <div className="form-section">
             <div className="form-section-header">
@@ -1106,43 +1182,129 @@ function BuatLaporan() {
 
               <div>
                 <h2>Foto pendukung</h2>
-                <p>Tambahkan foto untuk membantu menjelaskan kondisi.</p>
+                <p>
+                  Tambahkan foto untuk membantu menjelaskan
+                  kondisi di lokasi.
+                </p>
               </div>
             </div>
 
             <div className="upload-area">
-              <div className="upload-icon">↑</div>
-              <h3>Unggah foto</h3>
-              <p>Pilih foto dari perangkatmu</p>
-              <span>JPG, JPEG, PNG, atau WebP · Maksimal 2 MB</span>
-
               <input
+                ref={photoInputRef}
                 type="file"
                 id="foto"
+                className="upload-input"
                 accept="image/jpeg,image/png,image/webp"
                 onChange={handlePhotoChange}
+                aria-label="Pilih foto bukti laporan"
               />
 
-              <label htmlFor="foto" className="upload-button">
-                Pilih foto
-              </label>
+              {!photoPreview ? (
+                <label
+                  htmlFor="foto"
+                  className="upload-content"
+                >
+                  <div className="upload-icon">
+                    <svg
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="1.7"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      aria-hidden="true"
+                    >
+                      <rect
+                        x="3"
+                        y="3"
+                        width="18"
+                        height="18"
+                        rx="4"
+                      />
+                      <circle cx="8.5" cy="8.5" r="1.5" />
+                      <path d="m21 15-5-5L5 21" />
+                    </svg>
+                  </div>
+
+                  <h3>Unggah foto bukti</h3>
+
+                  <p>
+                    Pilih foto kondisi jalan atau fasilitas umum
+                    yang ingin kamu laporkan.
+                  </p>
+
+                  <span className="upload-button">
+                    Pilih foto
+                  </span>
+
+                  <small>
+                    JPG, PNG, atau WebP · Maksimal 2 MB
+                  </small>
+                </label>
+              ) : (
+                <div className="photo-preview">
+                  <div className="photo-preview-heading">
+                    <div>
+                      <span className="photo-preview-check">
+                        ✓
+                      </span>
+
+                      <div>
+                        <strong>Foto berhasil dipilih</strong>
+                        <p>
+                          Periksa foto sebelum mengirim laporan.
+                        </p>
+                      </div>
+                    </div>
+
+                    <button
+                      type="button"
+                      className="photo-change-button"
+                      onClick={() => photoInputRef.current?.click()}
+                    >
+                      Ganti foto
+                    </button>
+                  </div>
+
+                  <img
+                    src={photoPreview}
+                    alt="Pratinjau foto bukti laporan"
+                  />
+
+                  <div className="photo-preview-footer">
+                    <div className="photo-file-info">
+                      <span className="photo-file-icon">
+                        ▧
+                      </span>
+
+                      <div>
+                        <strong>
+                          {selectedPhoto?.name}
+                        </strong>
+                        <small>
+                          {selectedPhoto
+                            ? `${(selectedPhoto.size / 1024).toFixed(0)} KB`
+                            : ""}
+                        </small>
+                      </div>
+                    </div>
+
+                    <button
+                      type="button"
+                      className="remove-photo-button"
+                      onClick={handleRemovePhoto}
+                    >
+                      Hapus foto
+                    </button>
+                  </div>
+                </div>
+              )}
 
               {photoError && (
                 <p role="alert" className="photo-error">
                   {photoError}
                 </p>
-              )}
-
-              {photoPreview && (
-                <div className="photo-preview">
-                  <img src={photoPreview} alt="Preview foto laporan" />
-
-                  <p>{selectedPhoto?.name}</p>
-
-                  <button type="button" onClick={handleRemovePhoto}>
-                    Hapus foto
-                  </button>
-                </div>
               )}
             </div>
           </div>
@@ -1153,8 +1315,8 @@ function BuatLaporan() {
             <div className="submit-info">
               <span>✓</span>
               <p>
-                Pastikan informasi yang kamu masukkan sudah sesuai sebelum
-                mengirim laporan.
+                Pastikan informasi yang kamu masukkan sudah
+                sesuai sebelum mengirim laporan.
               </p>
             </div>
 
@@ -1164,7 +1326,9 @@ function BuatLaporan() {
               disabled={submitting}
             >
               <span>
-                {submitting ? "Mengirim laporan..." : "Kirim laporan"}
+                {submitting
+                  ? "Mengirim laporan..."
+                  : "Kirim laporan"}
               </span>
 
               <span>{submitting ? "◌" : "→"}</span>
@@ -1174,8 +1338,8 @@ function BuatLaporan() {
       </section>
 
       <footer className="buat-laporan-footer">
-        LaporKita · Bersama menyampaikan informasi untuk lingkungan yang lebih
-        baik.
+        LaporKita · Bersama menyampaikan informasi untuk
+        lingkungan yang lebih baik.
       </footer>
     </main>
   );

@@ -1,4 +1,3 @@
-
 {
   "name": "laporkita",
   "private": true,
@@ -12,7 +11,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "lucide-react": "^1.55.0",
+    "lucide-react": "^1.58.0",
     "multer": "^2.4.0",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",

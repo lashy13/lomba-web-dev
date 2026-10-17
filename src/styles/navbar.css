@@ -1,571 +1,747 @@
-/* =========================================================
-   NAVBAR LAPORKITA
-   Tema: Putih, Biru, dan Cyan
-========================================================= */
+/* =========================================
+   LAPORKITA MODERN FLOATING NAVBAR
+========================================= */
 
-.navbar {
+.lk-navbar {
   position: fixed;
-  top: 0;
+
+  top: 17px;
   left: 0;
+  right: 0;
+
   width: 100%;
-  z-index: 1000;
 
-  background: rgba(255, 255, 255, 0.94);
+  z-index: 9999;
 
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
+  padding: 0 25px;
 
-  border-bottom: 1px solid rgba(37, 99, 235, 0.1);
-
-  box-shadow: 0 5px 24px rgba(15, 23, 42, 0.045);
+  transition:
+    transform 0.4s ease,
+    opacity 0.4s ease;
 }
 
-/* =========================================================
-   INNER
-========================================================= */
+.lk-navbar.visible {
+  transform: translateY(0);
+  opacity: 1;
+}
 
-.navbar-inner {
-  width: min(1200px, calc(100% - 48px));
-  height: 76px;
+.lk-navbar.hidden {
+  transform: translateY(-130%);
+  opacity: 0;
+  pointer-events: none;
+}
 
+/* =========================================
+   GLASS CONTAINER
+========================================= */
+
+.lk-navbar-container {
+  position: relative;
+
+  max-width: 1260px;
   margin: 0 auto;
 
+  border-radius: 19px;
+
+  background: rgba(255, 255, 255, 0.88);
+
+  border: 1px solid rgba(191, 219, 254, 0.7);
+
+  box-shadow:
+    0 8px 35px rgba(37, 99, 235, 0.08),
+    0 0 30px rgba(147, 197, 253, 0.08);
+
+  -webkit-backdrop-filter: blur(16px);
+  backdrop-filter: blur(16px);
+
+  transition:
+    background 0.3s ease,
+    box-shadow 0.3s ease,
+    border-color 0.3s ease;
+}
+
+.lk-navbar.scrolled .lk-navbar-container {
+  background: rgba(255, 255, 255, 0.96);
+
+  border-color: rgba(147, 197, 253, 0.65);
+
+  box-shadow:
+    0 12px 45px rgba(37, 99, 235, 0.13);
+}
+
+.lk-navbar-inner {
   display: flex;
   align-items: center;
   justify-content: space-between;
 
-  gap: 24px;
+  gap: 25px;
+
+  min-height: 77px;
+
+  padding: 0 25px;
 }
 
-/* =========================================================
-   BRAND / LOGO
-========================================================= */
+/* =========================================
+   BRAND
+========================================= */
 
-.navbar-brand {
-  display: flex;
+.lk-navbar-brand {
+  display: inline-flex;
   align-items: center;
-  gap: 11px;
+  gap: 12px;
 
-  height: 100%;
   flex-shrink: 0;
 
   text-decoration: none;
-  overflow: visible;
 }
 
-.navbar-logo-image {
-  display: block;
-
-  width: 52px;
-  height: 52px;
-
-  object-fit: contain;
-  object-position: center;
-
-  flex-shrink: 0;
-  user-select: none;
-
-  transition: transform 0.25s ease;
-}
-
-.navbar-brand:hover .navbar-logo-image {
-  transform: scale(1.04);
-}
-
-.navbar-brand-text {
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-
-  gap: 5px;
-  min-width: 0;
-}
-
-.navbar-brand-title {
-  display: block;
-
-  font-size: 20px;
-  line-height: 1.1;
-  font-weight: 850;
-  letter-spacing: -0.6px;
-
-  background: linear-gradient(
-    90deg,
-    #2563eb 0%,
-    #0ea5e9 55%,
-    #06b6d4 100%
-  );
-
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
-
-  white-space: nowrap;
-}
-
-.navbar-brand-title span {
-  background: linear-gradient(90deg, #0ea5e9, #06b6d4);
-
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
-}
-
-.navbar-brand-tagline {
-  display: block;
-
-  color: #64748b;
-
-  font-size: 9px;
-  line-height: 1.3;
-  font-weight: 650;
-  letter-spacing: 0.7px;
-
-  white-space: nowrap;
-  text-transform: uppercase;
-
-  transition: color 0.2s ease;
-}
-
-.navbar-brand:hover .navbar-brand-tagline {
-  color: #2563eb;
-}
-
-/* =========================================================
-   MENU NAVIGASI
-========================================================= */
-
-.navbar-menu {
+.lk-navbar-logo {
   display: flex;
   align-items: center;
   justify-content: center;
 
-  gap: 6px;
+  width: 49px;
+  height: 49px;
 
-  margin-left: auto;
-  margin-right: 12px;
+  border-radius: 13px;
+
+  background:
+    linear-gradient(
+      135deg,
+      #eff6ff,
+      #dbeafe
+    );
+
+  border: 1px solid #bfdbfe;
+
+  box-shadow:
+    0 5px 15px rgba(37, 99, 235, 0.1);
+
+  transition:
+    transform 0.35s ease,
+    box-shadow 0.35s ease;
 }
 
-.navbar-link {
+.lk-navbar-brand:hover .lk-navbar-logo {
+  transform: rotate(-6deg) scale(1.06);
+
+  box-shadow:
+    0 8px 25px rgba(37, 99, 235, 0.2);
+}
+
+.lk-navbar-logo img {
+  width: 39px;
+  height: 39px;
+
+  object-fit: contain;
+}
+
+.lk-navbar-brand-text {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.lk-navbar-brand-text strong {
+  font-size: 21px;
+  font-weight: 850;
+
+  letter-spacing: -0.8px;
+
+  color: #0f172a;
+}
+
+.lk-navbar-brand-text strong span {
+  color: #2563eb;
+}
+
+.lk-navbar-brand-text small {
+  font-size: 10px;
+  font-weight: 600;
+
+  letter-spacing: 0.2px;
+
+  color: #64748b;
+}
+
+/* =========================================
+   DESKTOP NAVIGATION
+========================================= */
+
+.lk-navbar-menu {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  gap: 8px;
+}
+
+.lk-navbar-link {
   position: relative;
 
   display: inline-flex;
   align-items: center;
   justify-content: center;
 
-  padding: 10px 14px;
-
-  border-radius: 10px;
-
-  color: #475569;
-  background: transparent;
-
-  text-decoration: none;
-
-  font-size: 13px;
-  font-weight: 650;
-
-  white-space: nowrap;
-
-  transition:
-    color 0.2s ease,
-    background-color 0.2s ease;
-}
-
-.navbar-link:hover {
-  color: #2563eb;
-  background: #eff6ff;
-}
-
-.navbar-link::after {
-  content: "";
-
-  position: absolute;
-  bottom: 4px;
-  left: 50%;
-
-  width: 0;
-  height: 2px;
-
-  border-radius: 999px;
-  background: #2563eb;
-
-  transform: translateX(-50%);
-
-  transition: width 0.2s ease;
-}
-
-.navbar-link:hover::after {
-  width: 18px;
-}
-
-/* =========================================================
-   BAGIAN KANAN NAVBAR
-========================================================= */
-
-.navbar-right {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-
-  gap: 8px;
-
-  flex-shrink: 0;
-}
-
-/* =========================================================
-   LOGIN DAN REGISTER
-========================================================= */
-
-.navbar-auth {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-
-  gap: 8px;
-}
-
-.navbar-login,
-.navbar-register {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-
-  padding: 10px 16px;
+  padding: 12px 19px;
 
   border-radius: 11px;
 
+  color: #475569;
+
+  font-size: 13px;
+  font-weight: 700;
+
   text-decoration: none;
 
-  font-size: 12px;
-  font-weight: 750;
-
-  white-space: nowrap;
-
   transition:
-    background-color 0.2s ease,
-    box-shadow 0.2s ease,
-    transform 0.2s ease;
+    background 0.3s ease,
+    color 0.3s ease,
+    transform 0.3s ease;
 }
 
-.navbar-login {
-  color: #2563eb;
-  background: transparent;
-}
-
-.navbar-login:hover {
+.lk-navbar-link:hover {
   background: #eff6ff;
+  color: #2563eb;
+
+  transform: translateY(-2px);
 }
 
-.navbar-register {
-  color: #ffffff;
+.lk-navbar-link.active {
+  background:
+    linear-gradient(
+      135deg,
+      #dbeafe,
+      #eff6ff
+    );
 
-  background: linear-gradient(
-    135deg,
-    #2563eb,
-    #0ea5e9
-  );
-
-  box-shadow: 0 5px 14px rgba(37, 99, 235, 0.2);
+  color: #1d4ed8;
 }
 
-.navbar-register:hover {
-  background: linear-gradient(
-    135deg,
-    #1d4ed8,
-    #0284c7
-  );
+.lk-navbar-link.active::after {
+  content: "";
 
-  box-shadow: 0 7px 18px rgba(37, 99, 235, 0.25);
+  position: absolute;
 
-  transform: translateY(-1px);
+  bottom: 5px;
+  left: 50%;
+
+  width: 20px;
+  height: 3px;
+
+  transform: translateX(-50%);
+
+  border-radius: 10px;
+
+  background: #3b82f6;
 }
 
-/* =========================================================
-   TOMBOL NOTIFIKASI
-========================================================= */
+/* =========================================
+   RIGHT SIDE
+========================================= */
 
-.navbar-notification-button {
-  position: relative;
+.lk-navbar-right {
+  display: flex;
+  align-items: center;
 
-  width: 42px;
-  height: 42px;
+  gap: 13px;
+}
 
-  padding: 0;
+/* =========================================
+   AUTH BUTTONS
+========================================= */
 
+.lk-navbar-auth {
+  display: flex;
+  align-items: center;
+
+  gap: 10px;
+}
+
+.lk-navbar-login {
   display: inline-flex;
   align-items: center;
   justify-content: center;
 
-  flex-shrink: 0;
+  padding: 12px 18px;
 
-  margin: 0 4px 0 0;
+  border-radius: 11px;
 
-  border: 1px solid #e2e8f0;
-  border-radius: 50%;
+  font-size: 13px;
+  font-weight: 700;
 
-  background: #ffffff;
+  color: #2563eb;
+
+  transition:
+    background 0.3s ease,
+    transform 0.3s ease;
+}
+
+.lk-navbar-login:hover {
+  background: #eff6ff;
+  transform: translateY(-2px);
+}
+
+.lk-navbar-register {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  gap: 9px;
+
+  padding: 12px 19px;
+
+  border-radius: 11px;
+
+  background:
+    linear-gradient(
+      135deg,
+      #2563eb,
+      #3b82f6
+    );
+
+  color: white;
+
+  font-size: 13px;
+  font-weight: 700;
+
+  box-shadow:
+    0 7px 20px rgba(37, 99, 235, 0.22);
+
+  transition:
+    transform 0.3s ease,
+    box-shadow 0.3s ease;
+}
+
+.lk-navbar-register:hover {
+  transform: translateY(-3px);
+
+  box-shadow:
+    0 12px 25px rgba(37, 99, 235, 0.32);
+}
+
+.lk-navbar-register svg {
+  transition: transform 0.3s ease;
+}
+
+.lk-navbar-register:hover svg {
+  transform: translateX(3px);
+}
+
+/* =========================================
+   NOTIFICATION
+========================================= */
+
+.lk-navbar-notification {
+  position: relative;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  width: 43px;
+  height: 43px;
+
+  border-radius: 12px;
+
+  border: 1px solid #dbeafe;
+
+  background: #f8fbff;
+
   color: #475569;
 
   cursor: pointer;
 
-  -webkit-tap-highlight-color: transparent;
-
   transition:
-    color 0.2s ease,
-    background-color 0.2s ease,
-    border-color 0.2s ease,
-    box-shadow 0.2s ease,
-    transform 0.2s ease;
+    transform 0.3s ease,
+    background 0.3s ease,
+    color 0.3s ease;
 }
 
-.navbar-notification-button:hover {
+.lk-navbar-notification:hover {
+  background: #dbeafe;
   color: #2563eb;
 
-  background: #eff6ff;
-  border-color: #bfdbfe;
-
-  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.1);
+  transform: translateY(-2px);
 }
 
-.navbar-notification-button:active {
-  transform: scale(0.96);
-}
-
-.navbar-notification-icon {
-  display: block;
-
-  width: 21px;
-  height: 21px;
-
-  flex-shrink: 0;
-}
-
-/* =========================================================
-   BADGE ANGKA NOTIFIKASI
-
-   Angka merah muncul jika ada notifikasi belum dibaca.
-========================================================= */
-
-.navbar-notification-badge {
+.lk-notification-badge {
   position: absolute;
 
   top: -5px;
   right: -5px;
 
-  min-width: 20px;
-  height: 20px;
-
-  padding: 0 5px;
-
   display: flex;
   align-items: center;
   justify-content: center;
 
-  border: 2px solid #ffffff;
-  border-radius: 999px;
+  min-width: 19px;
+  height: 19px;
+
+  padding: 0 4px;
+
+  border-radius: 50px;
 
   background: #ef4444;
-  color: #ffffff;
+
+  color: white;
 
   font-size: 10px;
-  font-weight: 850;
-  line-height: 1;
+  font-weight: 800;
 
-  white-space: nowrap;
+  border: 2px solid white;
 
-  box-shadow: 0 2px 7px rgba(239, 68, 68, 0.25);
-
-  pointer-events: none;
-
-  animation: notificationBadgeIn 0.2s ease-out;
+  box-shadow:
+    0 3px 10px rgba(239, 68, 68, 0.25);
 }
 
-@keyframes notificationBadgeIn {
-  from {
-    opacity: 0;
-    transform: scale(0.7);
-  }
+/* =========================================
+   PROFILE TRIGGER
+========================================= */
 
-  to {
-    opacity: 1;
-    transform: scale(1);
-  }
-}
-
-/* =========================================================
-   WRAPPER PROFIL
-========================================================= */
-
-.profile-wrapper {
+.lk-navbar-profile {
   position: relative;
+}
 
+.lk-profile-trigger {
   display: flex;
   align-items: center;
 
-  flex-shrink: 0;
-}
+  gap: 10px;
 
-/* =========================================================
-   TOMBOL AVATAR
-========================================================= */
+  padding: 5px 10px 5px 5px;
 
-.avatar-button {
-  position: relative;
+  border-radius: 50px;
 
-  width: 46px;
-  height: 46px;
+  border: 1px solid #dbeafe;
 
-  padding: 0;
-
-  display: flex;
-  align-items: center;
-  justify-content: center;
-
-  border: none;
-  border-radius: 50%;
-
-  background: transparent;
+  background: #f8fbff;
 
   cursor: pointer;
 
-  -webkit-tap-highlight-color: transparent;
+  transition:
+    background 0.3s ease,
+    border-color 0.3s ease,
+    box-shadow 0.3s ease;
 }
 
-/* =========================================================
-   AVATAR
-========================================================= */
+.lk-profile-trigger:hover,
+.lk-profile-trigger.active {
+  background: #eff6ff;
 
-.avatar-circle {
-  width: 40px;
-  height: 40px;
+  border-color: #93c5fd;
 
+  box-shadow:
+    0 5px 20px rgba(37, 99, 235, 0.1);
+}
+
+.lk-nav-avatar {
   display: flex;
   align-items: center;
   justify-content: center;
 
-  overflow: hidden;
+  width: 36px;
+  height: 36px;
+
   flex-shrink: 0;
 
-  border: 2px solid #ffffff;
   border-radius: 50%;
 
-  color: #64748b;
+  overflow: hidden;
 
-  background: linear-gradient(
-    145deg,
-    #dbeafe,
-    #f8fafc
-  );
+  background:
+    linear-gradient(
+      135deg,
+      #dbeafe,
+      #bfdbfe
+    );
 
-  box-shadow: 0 3px 10px rgba(15, 23, 42, 0.1);
-
-  transition:
-    border-color 0.2s ease,
-    box-shadow 0.2s ease;
+  color: #2563eb;
 }
 
-.avatar-button:hover .avatar-circle {
-  border-color: #bfdbfe;
-
-  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.15);
-}
-
-.avatar-circle svg {
-  display: block;
-
-  width: 26px;
-  height: 26px;
-}
-
-.avatar-circle img {
-  display: block;
-
+.lk-nav-avatar img {
   width: 100%;
   height: 100%;
 
   object-fit: cover;
-  object-position: center;
 }
 
-.avatar-circle.large {
-  width: 48px;
-  height: 48px;
-
-  flex-shrink: 0;
+.lk-nav-avatar svg {
+  width: 23px;
+  height: 23px;
 }
 
-.avatar-circle.large svg {
-  width: 30px;
-  height: 30px;
+.lk-nav-avatar.large {
+  width: 45px;
+  height: 45px;
 }
 
-/* =========================================================
-   PANAH DROPDOWN PROFIL
-========================================================= */
+.lk-profile-name {
+  max-width: 110px;
 
-.avatar-arrow {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+
+  font-size: 12px;
+  font-weight: 700;
+
+  color: #334155;
+}
+
+.lk-profile-chevron {
+  display: flex;
+  align-items: center;
+
+  color: #64748b;
+
+  transition: transform 0.3s ease;
+}
+
+.lk-profile-chevron.open {
+  transform: rotate(180deg);
+}
+
+/* =========================================
+   PROFILE DROPDOWN
+========================================= */
+
+.lk-profile-dropdown {
   position: absolute;
 
-  right: -2px;
-  bottom: -1px;
+  top: calc(100% + 15px);
+  right: 0;
 
-  width: 16px;
-  height: 16px;
+  width: 295px;
 
+  padding: 12px;
+
+  border-radius: 18px;
+
+  background: rgba(255, 255, 255, 0.98);
+
+  border: 1px solid #dbeafe;
+
+  box-shadow:
+    0 20px 60px rgba(15, 23, 42, 0.15),
+    0 0 30px rgba(147, 197, 253, 0.12);
+
+  animation: lkDropdownIn 0.25s ease both;
+
+  z-index: 100;
+}
+
+.lk-dropdown-user {
+  display: flex;
+  align-items: center;
+
+  gap: 12px;
+
+  padding: 13px 10px;
+}
+
+.lk-dropdown-user > div:last-child {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+
+  min-width: 0;
+}
+
+.lk-dropdown-user strong {
+  font-size: 13px;
+  color: #0f172a;
+
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.lk-dropdown-user span {
+  font-size: 11px;
+  color: #64748b;
+
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.lk-dropdown-divider {
+  height: 1px;
+
+  margin: 8px 0;
+
+  background: #e2e8f0;
+}
+
+.lk-dropdown-item {
+  display: flex;
+  align-items: center;
+
+  gap: 12px;
+
+  padding: 12px;
+
+  border-radius: 11px;
+
+  transition:
+    background 0.25s ease,
+    transform 0.25s ease;
+}
+
+.lk-dropdown-item:hover {
+  background: #eff6ff;
+  transform: translateX(3px);
+}
+
+.lk-dropdown-icon {
   display: flex;
   align-items: center;
   justify-content: center;
 
-  border: 1px solid #e2e8f0;
-  border-radius: 50%;
+  width: 37px;
+  height: 37px;
 
-  background: #ffffff;
-  color: #475569;
+  flex-shrink: 0;
 
+  border-radius: 10px;
+
+  background: #eff6ff;
+
+  color: #2563eb;
+}
+
+.lk-dropdown-item > div:last-child {
+  display: flex;
+  flex-direction: column;
+
+  gap: 4px;
+}
+
+.lk-dropdown-item strong {
+  font-size: 12px;
+  color: #334155;
+}
+
+.lk-dropdown-item small {
   font-size: 10px;
-  font-weight: 800;
-  line-height: 1;
-
-  transition: transform 0.2s ease;
+  color: #94a3b8;
 }
 
-.avatar-arrow.open {
-  transform: rotate(180deg);
+.lk-dropdown-logout {
+  display: flex;
+  align-items: center;
+
+  gap: 12px;
+
+  width: 100%;
+
+  padding: 13px;
+
+  border: none;
+  border-radius: 11px;
+
+  background: transparent;
+
+  color: #dc2626;
+
+  font-size: 12px;
+  font-weight: 700;
+
+  text-align: left;
+
+  cursor: pointer;
+
+  transition: background 0.25s ease;
 }
 
-/* =========================================================
-   DROPDOWN PROFIL
-========================================================= */
-
-.profile-dropdown {
-  position: absolute;
-
-  top: calc(100% + 12px);
-  right: 0;
-
-  width: 285px;
-  max-width: calc(100vw - 24px);
-
-  padding: 10px;
-
-  border: 1px solid #e2e8f0;
-  border-radius: 17px;
-
-  background: rgba(255, 255, 255, 0.98);
-
-  box-shadow: 0 16px 42px rgba(15, 23, 42, 0.13);
-
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
-
-  animation: profileDropdownIn 0.16s ease-out;
+.lk-dropdown-logout:hover {
+  background: #fef2f2;
 }
 
-@keyframes profileDropdownIn {
+/* =========================================
+   HAMBURGER BUTTON
+========================================= */
+
+.lk-navbar-toggle {
+  display: none;
+
+  position: relative;
+
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+
+  gap: 5px;
+
+  width: 43px;
+  height: 43px;
+
+  padding: 0;
+
+  border: 1px solid #dbeafe;
+  border-radius: 12px;
+
+  background: #eff6ff;
+
+  cursor: pointer;
+}
+
+.lk-toggle-line {
+  display: block;
+
+  width: 19px;
+  height: 2px;
+
+  border-radius: 10px;
+
+  background: #2563eb;
+
+  transition:
+    transform 0.3s ease,
+    opacity 0.3s ease;
+}
+
+.lk-navbar-toggle.active .lk-toggle-line:nth-child(1) {
+  transform: translateY(7px) rotate(45deg);
+}
+
+.lk-navbar-toggle.active .lk-toggle-line:nth-child(2) {
+  opacity: 0;
+}
+
+.lk-navbar-toggle.active .lk-toggle-line:nth-child(3) {
+  transform: translateY(-7px) rotate(-45deg);
+}
+
+/* =========================================
+   MOBILE MENU
+========================================= */
+
+.lk-mobile-menu {
+  display: none;
+}
+
+/* =========================================
+   ANIMATIONS
+========================================= */
+
+@keyframes lkDropdownIn {
   from {
     opacity: 0;
-    transform: translateY(-5px);
+    transform: translateY(-10px) scale(0.97);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes lkMobileIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
   }
 
   to {
@@ -574,493 +750,497 @@
   }
 }
 
-/* =========================================================
-   INFORMASI PENGGUNA DALAM DROPDOWN
-========================================================= */
+/* =========================================
+   RESPONSIVE - TABLET
+========================================= */
 
-.profile-dropdown-user {
-  display: flex;
-  align-items: center;
-
-  gap: 11px;
-
-  padding: 9px;
-}
-
-.profile-user-text {
-  display: flex;
-  flex-direction: column;
-
-  gap: 4px;
-
-  min-width: 0;
-}
-
-.profile-user-text strong {
-  overflow: hidden;
-
-  color: #0f172a;
-
-  font-size: 13px;
-  font-weight: 750;
-
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.profile-user-text span {
-  overflow: hidden;
-
-  color: #64748b;
-
-  font-size: 11px;
-
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-/* =========================================================
-   PEMISAH DROPDOWN
-========================================================= */
-
-.dropdown-line {
-  width: 100%;
-  height: 1px;
-
-  margin: 7px 0;
-
-  background: #e2e8f0;
-}
-
-/* =========================================================
-   MENU DROPDOWN PROFIL
-========================================================= */
-
-.profile-menu-item {
-  display: flex;
-  align-items: center;
-
-  gap: 11px;
-
-  padding: 10px;
-
-  border-radius: 11px;
-
-  color: inherit;
-  text-decoration: none;
-
-  transition:
-    background-color 0.18s ease,
-    transform 0.18s ease;
-}
-
-.profile-menu-item:hover {
-  background: #eff6ff;
-
-  transform: translateX(2px);
-}
-
-.menu-item-icon {
-  width: 36px;
-  height: 36px;
-
-  display: flex;
-  align-items: center;
-  justify-content: center;
-
-  flex-shrink: 0;
-
-  border-radius: 10px;
-
-  background: #eff6ff;
-
-  font-size: 15px;
-}
-
-.profile-menu-item div {
-  display: flex;
-  flex-direction: column;
-
-  gap: 3px;
-
-  min-width: 0;
-}
-
-.profile-menu-item strong {
-  color: #1e293b;
-
-  font-size: 12px;
-  font-weight: 750;
-}
-
-.profile-menu-item small {
-  color: #64748b;
-
-  font-size: 10px;
-  line-height: 1.4;
-}
-
-/* =========================================================
-   TOMBOL LOGOUT
-========================================================= */
-
-.logout-button {
-  width: 100%;
-
-  display: flex;
-  align-items: center;
-
-  gap: 9px;
-
-  padding: 11px;
-
-  border: none;
-  border-radius: 10px;
-
-  background: transparent;
-  color: #dc2626;
-
-  font-family: inherit;
-  font-size: 12px;
-  font-weight: 750;
-
-  text-align: left;
-
-  cursor: pointer;
-
-  transition: background-color 0.2s ease;
-}
-
-.logout-button:hover {
-  background: #fef2f2;
-}
-
-.logout-button span {
-  font-size: 16px;
-}
-
-/* =========================================================
-   FOCUS KEYBOARD
-========================================================= */
-
-.navbar-link:focus-visible,
-.navbar-login:focus-visible,
-.navbar-register:focus-visible,
-.navbar-notification-button:focus-visible,
-.avatar-button:focus-visible,
-.profile-menu-item:focus-visible,
-.logout-button:focus-visible {
-  outline: 3px solid rgba(37, 99, 235, 0.35);
-  outline-offset: 3px;
-}
-
-/* =========================================================
-   TABLET
-========================================================= */
-
-@media (max-width: 900px) {
-  .navbar-inner {
-    width: calc(100% - 32px);
-    gap: 16px;
+@media (max-width: 1050px) {
+  .lk-navbar-inner {
+    gap: 15px;
+    padding: 0 18px;
   }
 
-  .navbar-menu {
+  .lk-navbar-menu {
     gap: 2px;
-    margin-right: 4px;
   }
 
-  .navbar-link {
-    padding: 9px 10px;
+  .lk-navbar-link {
+    padding: 11px 13px;
     font-size: 12px;
   }
 
-  .navbar-brand {
-    gap: 8px;
-  }
-
-  .navbar-logo-image {
-    width: 46px;
-    height: 46px;
-  }
-
-  .navbar-brand-title {
-    font-size: 18px;
+  .lk-profile-name {
+    max-width: 75px;
   }
 }
 
-/* =========================================================
-   MOBILE NAVBAR
-========================================================= */
+/* =========================================
+   RESPONSIVE - MOBILE NAVIGATION
+========================================= */
 
-@media (max-width: 800px) {
-  .navbar-inner {
-    width: calc(100% - 28px);
-    height: 70px;
+@media (max-width: 850px) {
+  .lk-navbar {
+    top: 12px;
+    padding: 0 15px;
+  }
 
+  .lk-navbar-container {
+    border-radius: 17px;
+  }
+
+  .lk-navbar-inner {
+    min-height: 68px;
+    padding: 0 16px;
+  }
+
+  .lk-navbar-menu {
+    display: none;
+  }
+
+  .lk-navbar-toggle {
+    display: flex;
+  }
+
+  .lk-navbar-auth {
+    display: none;
+  }
+
+  .lk-profile-name,
+  .lk-profile-chevron {
+    display: none;
+  }
+
+  .lk-profile-trigger {
+    padding: 4px;
+  }
+
+  .lk-navbar-right {
+    gap: 9px;
+  }
+
+  /* MOBILE MENU */
+
+  .lk-mobile-menu {
+    display: block;
+
+    max-height: 0;
+
+    opacity: 0;
+    visibility: hidden;
+
+    overflow: hidden;
+
+    padding: 0 15px;
+
+    transition:
+      max-height 0.4s ease,
+      opacity 0.3s ease,
+      visibility 0.3s ease,
+      padding 0.3s ease;
+  }
+
+  .lk-mobile-menu.open {
+    max-height: min(75vh, 650px);
+
+    opacity: 1;
+    visibility: visible;
+
+    padding: 10px 15px 20px;
+
+    overflow-y: auto;
+  }
+
+  .lk-mobile-links {
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+  }
+
+  .lk-mobile-link {
+    display: flex;
+    align-items: center;
+
+    gap: 13px;
+
+    padding: 13px;
+
+    border-radius: 12px;
+
+    color: #475569;
+
+    font-size: 13px;
+    font-weight: 700;
+
+    transition:
+      background 0.25s ease,
+      color 0.25s ease;
+  }
+
+  .lk-mobile-link > svg:last-child {
+    margin-left: auto;
+  }
+
+  .lk-mobile-link:hover,
+  .lk-mobile-link.active {
+    background: #eff6ff;
+    color: #2563eb;
+  }
+
+  .lk-mobile-link-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    width: 35px;
+    height: 35px;
+
+    border-radius: 10px;
+
+    background: #dbeafe;
+
+    color: #2563eb;
+  }
+
+  .lk-mobile-divider {
+    height: 1px;
+
+    margin: 15px 0;
+
+    background: #e2e8f0;
+  }
+
+  /* MOBILE AUTH */
+
+  .lk-mobile-auth {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
     gap: 12px;
   }
 
-  .navbar-menu {
-    display: none;
+  .lk-mobile-login,
+  .lk-mobile-register {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+
+    min-height: 45px;
+
+    border-radius: 11px;
+
+    font-size: 12px;
+    font-weight: 800;
   }
 
-  .navbar-right {
-    margin-left: auto;
-    gap: 6px;
+  .lk-mobile-login {
+    background: #eff6ff;
+    color: #2563eb;
+
+    border: 1px solid #bfdbfe;
   }
 
-  .navbar-notification-button {
-    width: 40px;
-    height: 40px;
+  .lk-mobile-register {
+    background:
+      linear-gradient(
+        135deg,
+        #2563eb,
+        #3b82f6
+      );
 
-    margin-right: 2px;
+    color: white;
+
+    box-shadow:
+      0 7px 20px rgba(37, 99, 235, 0.18);
   }
 
-  .navbar-notification-icon {
-    width: 20px;
-    height: 20px;
+  /* MOBILE ACCOUNT */
+
+  .lk-mobile-account {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
   }
 
-  .navbar-notification-badge {
-    top: -4px;
-    right: -4px;
+  .lk-mobile-user {
+    display: flex;
+    align-items: center;
+    gap: 12px;
 
-    min-width: 18px;
-    height: 18px;
+    padding: 13px;
 
-    font-size: 9px;
+    border-radius: 12px;
+
+    background: #eff6ff;
   }
 
-  .avatar-button {
-    width: 42px;
-    height: 42px;
-  }
+  .lk-mobile-user > div:last-child {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
 
-  .avatar-circle {
-    width: 38px;
-    height: 38px;
-  }
-}
-
-/* =========================================================
-   HP
-========================================================= */
-
-@media (max-width: 480px) {
-  .navbar-inner {
-    width: calc(100% - 22px);
-    height: 66px;
-
-    gap: 7px;
-  }
-
-  .navbar-brand {
-    gap: 7px;
     min-width: 0;
   }
 
-  .navbar-logo-image {
-    width: 39px;
-    height: 39px;
+  .lk-mobile-user strong {
+    font-size: 12px;
+    color: #0f172a;
   }
 
-  .navbar-brand-text {
-    gap: 4px;
+  .lk-mobile-user span {
+    font-size: 10px;
+    color: #64748b;
+
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
-  .navbar-brand-title {
-    font-size: 16px;
-    letter-spacing: -0.4px;
+  .lk-mobile-cta {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+
+    padding: 14px;
+
+    border-radius: 11px;
+
+    background:
+      linear-gradient(
+        135deg,
+        #2563eb,
+        #3b82f6
+      );
+
+    color: white;
+
+    font-size: 12px;
+    font-weight: 800;
   }
 
-  .navbar-brand-tagline {
-    font-size: 7px;
-    letter-spacing: 0.35px;
+  .lk-mobile-secondary {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    padding: 13px;
+
+    border-radius: 11px;
+
+    background: #eff6ff;
+
+    color: #2563eb;
+
+    font-size: 12px;
+    font-weight: 700;
   }
 
-  .navbar-right {
-    gap: 4px;
+  .lk-mobile-logout {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 9px;
+
+    padding: 13px;
+
+    border-radius: 11px;
+
+    border: 1px solid #fecaca;
+
+    background: #fef2f2;
+
+    color: #dc2626;
+
+    font-size: 12px;
+    font-weight: 700;
+
+    cursor: pointer;
+  }
+}
+
+/* =========================================
+   SMALL MOBILE
+========================================= */
+
+@media (max-width: 480px) {
+  .lk-navbar {
+    top: 9px;
+    padding: 0 10px;
   }
 
-  .navbar-auth {
-    gap: 3px;
+  .lk-navbar-inner {
+    min-height: 62px;
+    padding: 0 12px;
+    gap: 8px;
   }
 
-  .navbar-login,
-  .navbar-register {
-    padding: 9px 11px;
-
-    border-radius: 9px;
-
-    font-size: 11px;
+  .lk-navbar-logo {
+    width: 40px;
+    height: 40px;
+    border-radius: 11px;
   }
 
-  .navbar-login {
-    display: none;
+  .lk-navbar-logo img {
+    width: 33px;
+    height: 33px;
   }
 
-  .navbar-notification-button {
-    width: 36px;
-    height: 36px;
-
-    margin-right: 1px;
+  .lk-navbar-brand {
+    gap: 8px;
   }
 
-  .navbar-notification-icon {
-    width: 19px;
-    height: 19px;
+  .lk-navbar-brand-text strong {
+    font-size: 17px;
   }
 
-  .navbar-notification-badge {
-    top: -4px;
-    right: -4px;
-
-    min-width: 17px;
-    height: 17px;
-
-    padding: 0 4px;
-
-    border-width: 2px;
-
-    font-size: 9px;
+  .lk-navbar-brand-text small {
+    font-size: 8px;
   }
 
-  .avatar-button {
+  .lk-navbar-notification,
+  .lk-navbar-toggle {
     width: 38px;
     height: 38px;
   }
 
-  .avatar-circle {
-    width: 34px;
-    height: 34px;
-  }
-
-  .avatar-circle svg {
-    width: 23px;
-    height: 23px;
-  }
-
-  .avatar-arrow {
-    width: 14px;
-    height: 14px;
-
-    font-size: 9px;
-  }
-
-  .profile-dropdown {
-    top: calc(100% + 10px);
-    right: -3px;
-
-    width: 270px;
-    padding: 8px;
-  }
-}
-
-/* =========================================================
-   HP KECIL
-========================================================= */
-
-@media (max-width: 360px) {
-  .navbar-inner {
-    width: calc(100% - 16px);
-    gap: 5px;
-  }
-
-  .navbar-logo-image {
-    width: 35px;
-    height: 35px;
-  }
-
-  .navbar-brand {
-    gap: 5px;
-  }
-
-  .navbar-brand-title {
-    font-size: 14px;
-  }
-
-  .navbar-brand-tagline {
-    display: none;
-  }
-
-  .navbar-right {
-    gap: 3px;
-  }
-
-  .navbar-register {
-    padding: 8px 9px;
-    font-size: 10px;
-  }
-
-  .navbar-notification-button {
-    width: 34px;
-    height: 34px;
-  }
-
-  .navbar-notification-icon {
-    width: 18px;
-    height: 18px;
-  }
-
-  .avatar-button {
-    width: 35px;
-    height: 35px;
-  }
-
-  .avatar-circle {
+  .lk-nav-avatar {
     width: 32px;
     height: 32px;
   }
 
-  .profile-dropdown {
-    right: -2px;
-    width: min(260px, calc(100vw - 20px));
+  .lk-navbar-right {
+    gap: 6px;
+  }
+
+  .lk-profile-dropdown {
+    position: fixed;
+
+    top: 82px;
+    right: 12px;
+
+    width: min(295px, calc(100vw - 24px));
+  }
+
+  .lk-mobile-menu.open {
+    max-height: min(78vh, 600px);
   }
 }
 
-/* =========================================================
-   AKSESIBILITAS: KURANGI ANIMASI
-========================================================= */
+/* =========================================
+   EXTRA SMALL MOBILE
+========================================= */
+
+@media (max-width: 360px) {
+  .lk-navbar-brand-text small {
+    display: none;
+  }
+
+  .lk-navbar-brand-text strong {
+    font-size: 16px;
+  }
+
+  .lk-navbar-right {
+    gap: 4px;
+  }
+
+  .lk-navbar-inner {
+    padding: 0 9px;
+  }
+
+  .lk-navbar-notification,
+  .lk-navbar-toggle {
+    width: 35px;
+    height: 35px;
+  }
+}
+
+/* =========================================
+   ACCESSIBILITY
+========================================= */
+
+.lk-navbar :is(a, button):focus-visible {
+  outline: 3px solid #60a5fa;
+  outline-offset: 3px;
+}
 
 @media (prefers-reduced-motion: reduce) {
-  .navbar *,
-  .navbar *::before,
-  .navbar *::after {
-    animation: none !important;
-    transition: none !important;
-    scroll-behavior: auto !important;
+  .lk-navbar *,
+  .lk-navbar *::before,
+  .lk-navbar *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
   }
 }
-/* Tombol notifikasi */
-.navbar-notification-button {
-  position: relative;
+
+/* =========================================
+   TOUCH DEVICES
+========================================= */
+
+@media (hover: none) {
+  .lk-navbar-link:hover,
+  .lk-navbar-login:hover,
+  .lk-navbar-register:hover,
+  .lk-navbar-notification:hover,
+  .lk-dropdown-item:hover {
+    transform: none;
+  }
 }
 
-/* Angka merah notifikasi belum dibaca */
-.navbar-notification-badge {
-  position: absolute;
-  top: -5px;
-  right: -5px;
+/* =====================================
+   TOMBOL BUAT LAPORAN
+===================================== */
 
-  min-width: 19px;
-  height: 19px;
-  padding: 0 5px;
-
-  display: flex;
+.lk-navbar-create-report {
+  display: inline-flex;
   align-items: center;
   justify-content: center;
+  gap: 8px;
+  min-height: 42px;
+  padding: 0 15px;
 
-  box-sizing: border-box;
-  border: 2px solid #ffffff;
-  border-radius: 999px;
-
-  background: #ef4444;
   color: #ffffff;
-
-  font-size: 10px;
-  font-weight: 800;
-  line-height: 1;
+  text-decoration: none;
   white-space: nowrap;
 
-  pointer-events: none;
+  background: linear-gradient(135deg, #3b82f6, #2563eb 55%, #1d4ed8);
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  border-radius: 12px;
+
+  box-shadow: 0 5px 15px rgba(37, 99, 235, 0.18);
+
+  font-size: 12px;
+  font-weight: 700;
+
+  transition:
+    transform 0.22s ease,
+    box-shadow 0.22s ease,
+    filter 0.22s ease;
+}
+
+.lk-navbar-create-report:hover {
+  color: #ffffff;
+  filter: brightness(1.07);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(37, 99, 235, 0.26);
+}
+
+.lk-navbar-create-report:active {
+  transform: scale(0.97);
+}
+
+.lk-navbar-create-report:focus-visible {
+  outline: 3px solid rgba(96, 165, 250, 0.6);
+  outline-offset: 3px;
+}
+
+@media (max-width: 900px) {
+  .lk-navbar-create-report {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lk-navbar-create-report {
+    transition: none;
+  }
 }

@@ -1,40 +1,141 @@
+
+/* ==========================================================
+   LAPORKITA — CREATE REPORT
+   Premium UI • Blue/White Gradient • Responsive
+========================================================== */
+
+:root {
+  --bl-primary: #2563eb;
+  --bl-primary-dark: #1d4ed8;
+  --bl-primary-light: #60a5fa;
+  --bl-cyan: #0ea5e9;
+
+  --bl-text: #172b4d;
+  --bl-text-secondary: #536987;
+  --bl-muted: #8494ad;
+
+  --bl-border: #e0eafb;
+  --bl-surface: #ffffff;
+  --bl-surface-soft: #f5f9ff;
+
+  --bl-radius: 22px;
+
+  --bl-shadow:
+    0 24px 65px rgba(37, 99, 235, 0.09),
+    0 5px 20px rgba(30, 64, 175, 0.035);
+}
+
+/* ==========================================================
+   PAGE
+========================================================== */
+
 .buat-laporan-page {
   position: relative;
+  isolation: isolate;
+
   min-height: 100vh;
-  width: 100%;
-  overflow-x: hidden;
+  padding: 42px 24px 30px;
+  overflow: hidden;
+
+  color: var(--bl-text);
+
   background:
     radial-gradient(
-      circle at 10% 10%,
-      rgba(37, 99, 235, 0.12),
+      ellipse at 5% 5%,
+      rgba(96, 165, 250, 0.2),
+      transparent 34%
+    ),
+    radial-gradient(
+      ellipse at 100% 20%,
+      rgba(56, 189, 248, 0.14),
       transparent 30%
     ),
     radial-gradient(
-      circle at 90% 20%,
-      rgba(6, 182, 212, 0.1),
-      transparent 30%
+      ellipse at 50% 100%,
+      rgba(191, 219, 254, 0.42),
+      transparent 43%
     ),
     linear-gradient(
-      180deg,
-      #f4f9ff 0%,
-      #ffffff 45%,
-      #f8fbff 100%
+      135deg,
+      #f6f9ff 0%,
+      #edf5ff 42%,
+      #ffffff 73%,
+      #eff7ff 100%
     );
-  color: #0f172a;
-  padding: 0 24px 60px;
 }
+
+.buat-laporan-page *,
+.buat-laporan-page *::before,
+.buat-laporan-page *::after {
+  box-sizing: border-box;
+}
+
+.buat-laporan-page button,
+.buat-laporan-page input,
+.buat-laporan-page select,
+.buat-laporan-page textarea {
+  font: inherit;
+}
+
+.buat-laporan-page::before,
+.buat-laporan-page::after {
+  position: absolute;
+  z-index: -1;
+
+  content: "";
+  pointer-events: none;
+  border-radius: 50%;
+}
+
+.buat-laporan-page::before {
+  top: 12%;
+  left: -210px;
+
+  width: 410px;
+  height: 410px;
+
+  background: radial-gradient(
+    circle,
+    rgba(59, 130, 246, 0.13),
+    transparent 70%
+  );
+
+  animation: blAmbientOne 15s ease-in-out infinite;
+}
+
+.buat-laporan-page::after {
+  top: 47%;
+  right: -220px;
+
+  width: 440px;
+  height: 440px;
+
+  background: radial-gradient(
+    circle,
+    rgba(14, 165, 233, 0.12),
+    transparent 70%
+  );
+
+  animation: blAmbientTwo 18s ease-in-out infinite;
+}
+
+/* ==========================================================
+   BACKGROUND DECORATION
+========================================================== */
 
 .buat-laporan-background {
   position: absolute;
+  z-index: -1;
   inset: 0;
-  pointer-events: none;
+
   overflow: hidden;
+  pointer-events: none;
 }
 
 .buat-laporan-grid {
   position: absolute;
   inset: 0;
-  opacity: 0.3;
+
   background-image:
     linear-gradient(
       rgba(37, 99, 235, 0.035) 1px,
@@ -45,909 +146,2404 @@
       rgba(37, 99, 235, 0.035) 1px,
       transparent 1px
     );
-  background-size: 42px 42px;
+
+  background-size: 44px 44px;
+
+  mask-image: linear-gradient(
+    to bottom,
+    black,
+    rgba(0, 0, 0, 0.6) 55%,
+    transparent
+  );
 }
 
 .buat-laporan-orb {
   position: absolute;
+
+  border: 1px solid rgba(96, 165, 250, 0.22);
   border-radius: 50%;
-  filter: blur(2px);
 }
 
 .buat-laporan-orb-one {
-  width: 320px;
-  height: 320px;
-  top: 250px;
-  left: -180px;
-  background: rgba(37, 99, 235, 0.07);
+  top: 120px;
+  right: 5%;
+
+  width: 170px;
+  height: 170px;
+
+  box-shadow:
+    0 0 45px rgba(59, 130, 246, 0.07),
+    inset 0 0 35px rgba(59, 130, 246, 0.035);
+
+  animation: blRotate 35s linear infinite;
 }
 
 .buat-laporan-orb-two {
-  width: 380px;
-  height: 380px;
-  right: -200px;
-  top: 700px;
-  background: rgba(6, 182, 212, 0.07);
+  bottom: 7%;
+  left: 4%;
+
+  width: 125px;
+  height: 125px;
+
+  border-color: rgba(14, 165, 233, 0.28);
+
+  box-shadow:
+    0 0 35px rgba(14, 165, 233, 0.07),
+    inset 0 0 25px rgba(14, 165, 233, 0.035);
+
+  animation: blRotate 28s linear infinite reverse;
 }
+
+/* ==========================================================
+   HEADER
+========================================================== */
 
 .buat-laporan-header {
   position: relative;
-  z-index: 2;
-  width: min(1050px, 100%);
-  margin: 0 auto;
-  padding: 34px 0 38px;
+
+  width: min(100%, 920px);
+  margin: 0 auto 28px;
+
+  animation: blEnter 0.65s ease both;
 }
 
 .buat-laporan-back {
   display: inline-flex;
   align-items: center;
-  gap: 9px;
-  color: #475569;
-  text-decoration: none;
-  font-size: 14px;
-  font-weight: 600;
-  margin-bottom: 32px;
-  transition: 0.25s ease;
+  justify-content: center;
+  gap: 10px;
+
+  min-height: 42px;
+  margin-bottom: 25px;
+  padding: 10px 16px;
+
+  color: #38577f;
+  font-size: 12px;
+  font-weight: 750;
+
+  background: rgba(255, 255, 255, 0.78);
+  border: 1px solid rgba(191, 219, 254, 0.9);
+  border-radius: 13px;
+
+  box-shadow: 0 4px 14px rgba(37, 99, 235, 0.045);
+
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+
+  cursor: pointer;
+
+  transition:
+    transform 0.22s ease,
+    color 0.22s ease,
+    border-color 0.22s ease,
+    box-shadow 0.22s ease;
 }
 
 .buat-laporan-back span {
-  font-size: 21px;
+  font-size: 18px;
   line-height: 1;
-  transition: 0.25s ease;
 }
 
 .buat-laporan-back:hover {
-  color: #2563eb;
-}
+  color: var(--bl-primary);
+  border-color: #93c5fd;
 
-.buat-laporan-back:hover span {
-  transform: translateX(-4px);
+  transform: translateX(-3px);
+
+  box-shadow: 0 7px 20px rgba(37, 99, 235, 0.1);
 }
 
 .buat-laporan-heading {
-  max-width: 760px;
+  max-width: 720px;
 }
 
 .buat-laporan-label {
   display: inline-flex;
   align-items: center;
   gap: 9px;
-  padding: 7px 12px;
-  border: 1px solid rgba(37, 99, 235, 0.14);
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.8);
-  color: #2563eb;
-  font-size: 11px;
-  font-weight: 800;
-  letter-spacing: 0.12em;
-  margin-bottom: 18px;
+
+  margin-bottom: 15px;
+  padding: 8px 13px;
+
+  color: #1d4ed8;
+  font-size: 10px;
+  font-weight: 850;
+  letter-spacing: 1.3px;
+
+  background: linear-gradient(
+    110deg,
+    #dbeafe,
+    #ffffff
+  );
+
+  border: 1px solid #c9ddff;
+  border-radius: 100px;
+
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.045);
 }
 
 .buat-laporan-label-dot {
   width: 7px;
   height: 7px;
+  flex-shrink: 0;
+
+  background: #3b82f6;
   border-radius: 50%;
-  background: #2563eb;
-  box-shadow:
-    0 0 0 5px rgba(37, 99, 235, 0.08);
+
+  box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.12);
+
+  animation: blPulse 2.4s ease-in-out infinite;
 }
 
 .buat-laporan-heading h1 {
   margin: 0;
-  color: #0f172a;
-  font-size: clamp(36px, 5vw, 58px);
-  line-height: 1.05;
-  letter-spacing: -0.045em;
-  font-weight: 800;
+
+  color: #122c56;
+  font-size: clamp(30px, 4vw, 43px);
+  font-weight: 850;
+  line-height: 1.18;
+  letter-spacing: -1.4px;
 }
 
-.buat-laporan-heading p {
+.buat-laporan-heading > p {
   max-width: 650px;
-  margin: 17px 0 0;
-  color: #64748b;
-  font-size: 16px;
-  line-height: 1.75;
+  margin: 13px 0 0;
+
+  color: #637895;
+  font-size: 13px;
+  line-height: 1.9;
 }
+
+/* ==========================================================
+   MAIN CARD
+========================================================== */
 
 .buat-laporan-card {
   position: relative;
-  z-index: 2;
-  width: min(1050px, 100%);
+  isolation: isolate;
+
+  width: min(100%, 920px);
   margin: 0 auto;
-  background: rgba(255, 255, 255, 0.94);
-  border: 1px solid rgba(148, 163, 184, 0.2);
-  border-radius: 26px;
-  box-shadow:
-    0 20px 60px rgba(15, 23, 42, 0.07),
-    0 2px 8px rgba(15, 23, 42, 0.03);
+
   overflow: hidden;
-  backdrop-filter: blur(18px);
+
+  background: linear-gradient(
+    145deg,
+    rgba(255, 255, 255, 0.99),
+    rgba(249, 252, 255, 0.97)
+  );
+
+  border: 1px solid rgba(255, 255, 255, 0.95);
+  border-radius: 28px;
+
+  box-shadow:
+    0 30px 80px rgba(37, 99, 235, 0.105),
+    0 8px 25px rgba(30, 64, 175, 0.04),
+    inset 0 1px 0 #ffffff;
+
+  animation: blCardEnter 0.8s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  animation-delay: 0.08s;
+}
+
+.buat-laporan-card::before {
+  position: absolute;
+  z-index: 2;
+  top: 0;
+  left: 0;
+
+  width: 100%;
+  height: 4px;
+
+  content: "";
+
+  background: linear-gradient(
+    90deg,
+    #1d4ed8,
+    #60a5fa,
+    #38bdf8,
+    #818cf8,
+    #1d4ed8
+  );
+
+  background-size: 200% 100%;
+
+  animation: blGradient 9s linear infinite;
+}
+
+.buat-laporan-card::after {
+  position: absolute;
+  z-index: -1;
+  top: -150px;
+  right: -130px;
+
+  width: 350px;
+  height: 350px;
+
+  content: "";
+  pointer-events: none;
+
+  background: radial-gradient(
+    circle,
+    rgba(147, 197, 253, 0.13),
+    transparent 70%
+  );
 }
 
 .buat-laporan-form {
-  width: 100%;
+  position: relative;
+
+  display: flex;
+  flex-direction: column;
+  gap: 23px;
+
+  padding: 34px;
 }
+
+/* ==========================================================
+   SECTION CARDS
+========================================================== */
 
 .form-section {
-  padding: 42px 46px;
-  border-bottom: 1px solid #edf2f7;
+  position: relative;
+
+  min-width: 0;
+  margin: 0;
+  padding: 26px;
+
+  background: linear-gradient(
+    145deg,
+    #ffffff 0%,
+    #fbfdff 58%,
+    #f6faff 100%
+  );
+
+  border: 1px solid #e4edfb;
+  border-radius: var(--bl-radius);
+
+  box-shadow:
+    0 5px 18px rgba(30, 64, 175, 0.025),
+    inset 0 1px 0 #ffffff;
+
+  transition:
+    border-color 0.25s ease,
+    box-shadow 0.25s ease,
+    transform 0.25s ease;
+
+  animation: blSectionEnter 0.55s ease both;
 }
 
-.form-section:last-of-type {
-  border-bottom: none;
+.form-section:nth-child(1) {
+  animation-delay: 0.1s;
+}
+
+.form-section:nth-child(2) {
+  animation-delay: 0.18s;
+}
+
+.form-section:nth-child(3) {
+  animation-delay: 0.26s;
+}
+
+.form-section:hover {
+  border-color: #cbdffc;
+
+  box-shadow:
+    0 10px 28px rgba(37, 99, 235, 0.045),
+    inset 0 1px 0 #ffffff;
 }
 
 .form-section-header {
   display: flex;
-  align-items: flex-start;
-  gap: 17px;
-  margin-bottom: 32px;
+  align-items: center;
+  gap: 14px;
+
+  margin-bottom: 24px;
+  padding-bottom: 19px;
+
+  border-bottom: 1px solid #eaf0fa;
 }
 
 .form-section-number {
-  flex-shrink: 0;
-  width: 43px;
-  height: 43px;
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 13px;
-  background: linear-gradient(
-    135deg,
-    #2563eb,
-    #06b6d4
-  );
-  color: white;
+  flex-shrink: 0;
+
+  width: 44px;
+  height: 44px;
+
+  color: #ffffff;
   font-size: 13px;
-  font-weight: 800;
+  font-weight: 850;
+
+  background: linear-gradient(
+    140deg,
+    #60a5fa 0%,
+    #3b82f6 38%,
+    #1d4ed8 100%
+  );
+
+  border: 3px solid #eaf2ff;
+  border-radius: 15px;
+
   box-shadow:
-    0 8px 20px rgba(37, 99, 235, 0.18);
+    0 6px 15px rgba(37, 99, 235, 0.18),
+    inset 0 1px 0 rgba(255, 255, 255, 0.25);
+
+  transition:
+    transform 0.25s ease,
+    box-shadow 0.25s ease;
+}
+
+.form-section:hover .form-section-number {
+  transform: translateY(-2px);
+
+  box-shadow:
+    0 9px 19px rgba(37, 99, 235, 0.23),
+    inset 0 1px 0 rgba(255, 255, 255, 0.25);
 }
 
 .form-section-header h2 {
-  margin: 2px 0 6px;
-  color: #0f172a;
-  font-size: 21px;
-  line-height: 1.25;
-  letter-spacing: -0.02em;
+  margin: 0;
+
+  color: #18365f;
+  font-size: 16px;
+  font-weight: 850;
+  line-height: 1.5;
 }
 
 .form-section-header p {
-  margin: 0;
-  color: #64748b;
-  font-size: 14px;
-  line-height: 1.6;
+  margin: 4px 0 0;
+
+  color: #8190a8;
+  font-size: 11px;
+  line-height: 1.75;
 }
 
+/* ==========================================================
+   FORM GROUPS
+========================================================== */
+
 .laporan-form-group {
-  margin-bottom: 23px;
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+
+  min-width: 0;
+  margin-bottom: 22px;
 }
 
 .laporan-form-group:last-child {
   margin-bottom: 0;
 }
 
-.laporan-form-group label,
-.location-edit-field label {
-  display: block;
-  margin-bottom: 9px;
-  color: #334155;
-  font-size: 13px;
-  font-weight: 700;
+.laporan-form-group label {
+  color: #2b4265;
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1.6;
 }
 
 .laporan-form-group label span,
 .location-edit-field label span {
   color: #ef4444;
-  margin-left: 3px;
 }
+
+.laporan-form-group small {
+  color: #8190a8;
+  font-size: 10px;
+  line-height: 1.8;
+}
+
+/* ==========================================================
+   INPUTS
+========================================================== */
 
 .laporan-form-group input,
 .laporan-form-group select,
-.laporan-form-group textarea,
-.location-edit-field select,
-.location-edit-field textarea {
+.laporan-form-group textarea {
+  display: block;
+
   width: 100%;
-  box-sizing: border-box;
-  border: 1px solid #dce5ef;
+  min-width: 0;
+  min-height: 48px;
+  padding: 12px 14px;
+
+  color: #1e355a;
+  font-size: 12px;
+  line-height: 1.7;
+
+  background: linear-gradient(
+    135deg,
+    #ffffff,
+    #f9fbff
+  );
+
+  border: 1px solid #dce7f7;
   border-radius: 12px;
-  background: #ffffff;
-  color: #0f172a;
   outline: none;
-  font-family: inherit;
-  font-size: 14px;
+
+  box-shadow:
+    0 2px 5px rgba(30, 64, 175, 0.015),
+    inset 0 1px 0 rgba(255, 255, 255, 0.9);
+
   transition:
-    border-color 0.2s ease,
-    box-shadow 0.2s ease,
-    background 0.2s ease;
-}
-
-.laporan-form-group input,
-.laporan-form-group select,
-.location-edit-field select {
-  height: 49px;
-  padding: 0 15px;
-}
-
-.laporan-form-group textarea,
-.location-edit-field textarea {
-  padding: 14px 15px;
-  resize: vertical;
-  line-height: 1.65;
+    border-color 0.22s ease,
+    box-shadow 0.22s ease,
+    background 0.22s ease;
 }
 
 .laporan-form-group input::placeholder,
-.laporan-form-group textarea::placeholder,
-.location-edit-field textarea::placeholder {
-  color: #94a3b8;
+.laporan-form-group textarea::placeholder {
+  color: #a1aec1;
+  opacity: 1;
+}
+
+.laporan-form-group input:hover,
+.laporan-form-group select:hover,
+.laporan-form-group textarea:hover {
+  border-color: #b9d2f6;
+  background: #ffffff;
 }
 
 .laporan-form-group input:focus,
 .laporan-form-group select:focus,
-.laporan-form-group textarea:focus,
-.location-edit-field select:focus,
-.location-edit-field textarea:focus {
+.laporan-form-group textarea:focus {
   border-color: #60a5fa;
+  background: #ffffff;
+
   box-shadow:
-    0 0 0 4px rgba(37, 99, 235, 0.08);
+    0 0 0 4px rgba(59, 130, 246, 0.095),
+    0 5px 15px rgba(37, 99, 235, 0.045);
 }
 
-.laporan-form-group small,
-.location-edit-field small {
-  display: block;
-  margin-top: 8px;
-  color: #94a3b8;
-  font-size: 12px;
-  line-height: 1.55;
+.laporan-form-group textarea {
+  min-height: 140px;
+  resize: vertical;
 }
 
-/* ========================================
-   LOCATION
-======================================== */
+.laporan-form-group select {
+  cursor: pointer;
+}
+
+.laporan-form-group select:disabled {
+  color: #a1aec0;
+  background: #f1f5f9;
+  border-color: #e2e8f0;
+  cursor: not-allowed;
+}
+
+.laporan-form-group input[type="file"] {
+  min-height: auto;
+  padding: 10px;
+
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.laporan-form-group input[type="file"]::file-selector-button {
+  margin-right: 10px;
+  padding: 8px 12px;
+
+  color: #1d4ed8;
+  font-size: 11px;
+  font-weight: 750;
+
+  background: #eff6ff;
+  border: 1px solid #dbeafe;
+  border-radius: 8px;
+
+  cursor: pointer;
+}
+
+/* ==========================================================
+   LOCATION DETECTOR
+========================================================== */
 
 .location-detector {
+  position: relative;
+  overflow: hidden;
+
+  margin-bottom: 23px;
   padding: 22px;
-  border: 1px solid rgba(37, 99, 235, 0.13);
-  border-radius: 18px;
+
   background:
+    radial-gradient(
+      circle at 100% 0%,
+      rgba(96, 165, 250, 0.17),
+      transparent 43%
+    ),
     linear-gradient(
       135deg,
-      rgba(239, 246, 255, 0.95),
-      rgba(240, 253, 250, 0.75)
+      #edf5ff,
+      #f8fbff 60%,
+      #ffffff
     );
+
+  border: 1px solid #d2e3fc;
+  border-radius: 19px;
+
+  box-shadow:
+    0 8px 22px rgba(37, 99, 235, 0.035),
+    inset 0 1px 0 #ffffff;
+}
+
+.location-detector::before {
+  position: absolute;
+  top: 0;
+  left: 0;
+
+  width: 4px;
+  height: 100%;
+
+  content: "";
+
+  background: linear-gradient(
+    to bottom,
+    #2563eb,
+    #38bdf8,
+    #93c5fd
+  );
 }
 
 .location-detector-top {
   display: flex;
   align-items: center;
   gap: 14px;
+
+  margin-bottom: 18px;
 }
 
 .location-icon {
-  width: 45px;
-  height: 45px;
-  flex-shrink: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 13px;
-  background: #ffffff;
-  color: #2563eb;
-  font-size: 24px;
-  box-shadow:
-    0 5px 18px rgba(37, 99, 235, 0.08);
+  flex-shrink: 0;
+
+  width: 47px;
+  height: 47px;
+
+  color: #ffffff;
+  font-size: 28px;
+
+  background: linear-gradient(
+    145deg,
+    #60a5fa,
+    #2563eb
+  );
+
+  border: 3px solid #ffffff;
+  border-radius: 15px;
+
+  box-shadow: 0 7px 17px rgba(37, 99, 235, 0.19);
+}
+
+.location-icon span {
+  line-height: 1;
+}
+
+.location-detector-content {
+  flex: 1;
+  min-width: 0;
 }
 
 .location-detector-content strong {
   display: block;
-  color: #172554;
-  font-size: 15px;
-  margin-bottom: 3px;
+  margin-bottom: 5px;
+
+  color: #18365f;
+  font-size: 14px;
+  font-weight: 850;
 }
 
 .location-detector-content p {
   margin: 0;
-  color: #64748b;
-  font-size: 13px;
-  line-height: 1.5;
+
+  color: #7083a0;
+  font-size: 11px;
+  line-height: 1.8;
 }
 
 .location-button {
-  width: 100%;
-  height: 49px;
-  margin-top: 18px;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 9px;
-  border: 1px solid rgba(37, 99, 235, 0.18);
+  gap: 10px;
+
+  width: 100%;
+  min-height: 47px;
+  padding: 12px 16px;
+
+  color: #ffffff;
+  font-size: 12px;
+  font-weight: 800;
+
+  background: linear-gradient(
+    110deg,
+    #1d4ed8,
+    #2563eb 45%,
+    #0ea5e9
+  );
+
+  background-size: 180% 100%;
+
+  border: 1px solid rgba(255, 255, 255, 0.5);
   border-radius: 12px;
-  background: #ffffff;
-  color: #2563eb;
-  font-family: inherit;
-  font-size: 14px;
-  font-weight: 750;
+
+  box-shadow:
+    0 7px 17px rgba(37, 99, 235, 0.18),
+    inset 0 1px 0 rgba(255, 255, 255, 0.15);
+
   cursor: pointer;
+
   transition:
-    transform 0.2s ease,
-    border-color 0.2s ease,
-    background 0.2s ease,
-    box-shadow 0.2s ease;
+    background-position 0.35s ease,
+    transform 0.22s ease,
+    box-shadow 0.22s ease;
 }
 
 .location-button:hover:not(:disabled) {
-  transform: translateY(-1px);
-  border-color: #60a5fa;
-  background: #f8fbff;
-  box-shadow:
-    0 7px 20px rgba(37, 99, 235, 0.08);
+  background-position: 100% 50%;
+  transform: translateY(-2px);
+
+  box-shadow: 0 11px 22px rgba(37, 99, 235, 0.23);
+}
+
+.location-button:active:not(:disabled) {
+  transform: translateY(0);
 }
 
 .location-button:disabled {
-  cursor: wait;
   opacity: 0.7;
+  cursor: wait;
 }
 
 .location-button-icon {
-  font-size: 20px;
+  font-size: 17px;
   line-height: 1;
 }
 
 .location-error {
   display: flex;
   align-items: flex-start;
-  gap: 9px;
-  margin-top: 13px;
-  padding: 11px 13px;
+  gap: 10px;
+
+  margin-top: 14px;
+  padding: 12px 13px;
+
+  color: #b91c1c;
+  font-size: 11px;
+  line-height: 1.75;
+
+  background: #fff5f5;
+  border: 1px solid #fecaca;
   border-radius: 11px;
-  background: #fff7ed;
-  border: 1px solid #fed7aa;
-  color: #c2410c;
+
+  animation: blEnter 0.25s ease both;
 }
 
-.location-error span {
-  width: 19px;
-  height: 19px;
-  flex-shrink: 0;
+.location-error > span {
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 50%;
-  background: #f97316;
+  flex-shrink: 0;
+
+  width: 19px;
+  height: 19px;
+
   color: #ffffff;
   font-size: 11px;
-  font-weight: 800;
+  font-weight: 850;
+
+  background: #ef4444;
+  border-radius: 50%;
 }
 
 .location-error p {
   margin: 0;
-  font-size: 12px;
-  line-height: 1.5;
 }
+
+/* ==========================================================
+   LOCATION RESULT CARD
+========================================================== */
 
 .location-result {
   margin-top: 20px;
-  padding: 24px;
-  border: 1px solid #e2e8f0;
-  border-radius: 18px;
-  background: #ffffff;
+  padding: 21px;
+
+  background: linear-gradient(
+    145deg,
+    #ffffff,
+    #fafdff
+  );
+
+  border: 1px solid #dfeafb;
+  border-radius: 17px;
+
+  box-shadow:
+    0 6px 19px rgba(37, 99, 235, 0.025),
+    inset 0 1px 0 #ffffff;
 }
 
 .location-result-header {
   display: flex;
   align-items: center;
   gap: 12px;
-  margin-bottom: 23px;
+
+  margin-bottom: 21px;
 }
 
 .location-success-icon {
-  width: 38px;
-  height: 38px;
-  flex-shrink: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 11px;
-  background: #ecfeff;
-  color: #0891b2;
+  flex-shrink: 0;
+
+  width: 39px;
+  height: 39px;
+
+  color: #2563eb;
   font-size: 17px;
-  font-weight: 800;
+  font-weight: 850;
+
+  background: linear-gradient(
+    145deg,
+    #eff6ff,
+    #dbeafe
+  );
+
+  border: 1px solid #c7ddff;
+  border-radius: 12px;
 }
 
 .location-success-title {
-  color: #1e293b;
-  font-size: 14px;
-  font-weight: 750;
+  margin-bottom: 4px;
+
+  color: #1b3760;
+  font-size: 12px;
+  font-weight: 850;
+  line-height: 1.6;
 }
 
 .location-success-subtitle {
-  margin-top: 3px;
-  color: #94a3b8;
-  font-size: 12px;
+  color: #8493a9;
+  font-size: 10px;
+  line-height: 1.7;
 }
 
 .location-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  flex-shrink: 0;
+
   margin-left: auto;
-  padding: 6px 9px;
-  border-radius: 999px;
-  background: #ecfdf5;
-  color: #059669;
+  padding: 7px 9px;
+
+  color: #15803d;
   font-size: 9px;
   font-weight: 850;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.4px;
+
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  border-radius: 100px;
 }
+
+.location-status::before {
+  width: 6px;
+  height: 6px;
+
+  content: "";
+
+  background: #22c55e;
+  border-radius: 50%;
+  box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.1);
+}
+
+/* ==========================================================
+   LOCATION GRID
+========================================================== */
 
 .location-detail-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 19px 16px;
+  gap: 17px;
+}
+
+.location-edit-field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+
+  min-width: 0;
 }
 
 .location-edit-field-full {
   grid-column: 1 / -1;
 }
 
-.location-edit-field select {
-  appearance: none;
-  cursor: pointer;
-  padding-right: 40px;
-  background-image:
-    linear-gradient(
-      45deg,
-      transparent 50%,
-      #64748b 50%
-    ),
-    linear-gradient(
-      135deg,
-      #64748b 50%,
-      transparent 50%
-    );
-  background-position:
-    calc(100% - 18px) 21px,
-    calc(100% - 13px) 21px;
-  background-size:
-    5px 5px,
-    5px 5px;
-  background-repeat: no-repeat;
+.location-edit-field label {
+  color: #405878;
+  font-size: 11px;
+  font-weight: 800;
+  line-height: 1.6;
+}
+
+.location-edit-field input,
+.location-edit-field select,
+.location-edit-field textarea {
+  display: block;
+
+  width: 100%;
+  min-width: 0;
+  min-height: 43px;
+  padding: 10px 12px;
+
+  color: #294565;
+  font-size: 11px;
+  line-height: 1.7;
+
+  background: #f8fbff;
+  border: 1px solid #dce7f7;
+  border-radius: 10px;
+  outline: none;
+
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease,
+    background 0.2s ease;
+}
+
+.location-edit-field input:hover,
+.location-edit-field select:hover,
+.location-edit-field textarea:hover {
+  border-color: #b9d2f6;
+  background: #ffffff;
+}
+
+.location-edit-field input:focus,
+.location-edit-field select:focus,
+.location-edit-field textarea:focus {
+  background: #ffffff;
+  border-color: #60a5fa;
+
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.09);
 }
 
 .location-edit-field select:disabled {
+  color: #9aa9bb;
+  background: #f1f5f9;
   cursor: not-allowed;
-  opacity: 0.58;
-  background-color: #f8fafc;
+}
+
+.location-edit-field textarea {
+  min-height: 80px;
+  resize: vertical;
 }
 
 .location-address-help {
   display: flex;
   align-items: flex-start;
-  gap: 9px;
-  margin-top: 10px;
-  padding: 11px 13px;
-  border-radius: 10px;
-  background: #f8fafc;
-  border: 1px solid #e8eef5;
+  gap: 8px;
+
+  color: #8594a9;
+  font-size: 10px;
+  line-height: 1.7;
 }
 
 .location-address-help > span {
-  width: 19px;
-  height: 19px;
-  flex-shrink: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 50%;
-  background: #e0f2fe;
-  color: #0284c7;
+  flex-shrink: 0;
+
+  width: 16px;
+  height: 16px;
+
+  color: #2563eb;
   font-size: 10px;
-  font-weight: 800;
+  font-weight: 850;
+
+  background: #dbeafe;
+  border-radius: 50%;
 }
 
 .location-address-help p {
   margin: 0;
-  color: #64748b;
-  font-size: 11px;
-  line-height: 1.6;
 }
+
+.location-edit-field small {
+  color: #8795a9;
+  font-size: 10px;
+  line-height: 1.7;
+}
+
+/* ==========================================================
+   COORDINATES
+========================================================== */
 
 .location-coordinate {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 20px;
-  margin-top: 21px;
+  flex-wrap: wrap;
+  gap: 12px;
+
+  margin-top: 19px;
   padding: 13px 15px;
-  border: 1px dashed #cbd5e1;
+
+  background: linear-gradient(
+    100deg,
+    #eff6ff,
+    #f8fbff
+  );
+
+  border: 1px dashed #b9d2f6;
   border-radius: 12px;
-  background: #f8fafc;
+}
+
+.location-coordinate > div {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  min-width: 0;
 }
 
 .coordinate-label {
-  display: block;
-  margin-bottom: 4px;
-  color: #94a3b8;
+  color: #7c8da7;
   font-size: 10px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
+  font-weight: 750;
 }
 
 .location-coordinate strong {
-  color: #334155;
-  font-size: 12px;
-  font-weight: 650;
+  color: #1d4ed8;
+  font-size: 11px;
+  font-weight: 850;
+  overflow-wrap: anywhere;
 }
 
 .coordinate-badge {
-  padding: 5px 8px;
-  border-radius: 7px;
-  background: #e0f2fe;
-  color: #0284c7;
+  padding: 6px 9px;
+
+  color: #1d4ed8;
   font-size: 9px;
   font-weight: 850;
+
+  background: #ffffff;
+  border: 1px solid #dbeafe;
+  border-radius: 8px;
 }
 
 .location-edit-info {
   display: flex;
   align-items: flex-start;
   gap: 9px;
-  margin-top: 17px;
-  padding-top: 17px;
-  border-top: 1px solid #eef2f7;
+
+  margin-top: 15px;
+  padding: 12px 13px;
+
+  color: #657c99;
+  font-size: 10px;
+  line-height: 1.8;
+
+  background: #f6f9ff;
+  border-left: 3px solid #60a5fa;
+  border-radius: 0 10px 10px 0;
 }
 
-.location-edit-info span {
-  color: #2563eb;
-  font-size: 14px;
+.location-edit-info > span {
+  flex-shrink: 0;
+  color: #3b82f6;
 }
 
 .location-edit-info p {
   margin: 0;
-  color: #94a3b8;
-  font-size: 11px;
-  line-height: 1.55;
 }
 
 .location-note {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 10px;
-  margin-top: 14px;
-  padding: 12px 14px;
-  border-radius: 11px;
-  background: #f8fafc;
-  color: #64748b;
+
+  margin-top: 17px;
+  padding: 13px 14px;
+
+  color: #637b9b;
+  font-size: 10px;
+  line-height: 1.8;
+
+  background: linear-gradient(
+    100deg,
+    #f1f7ff,
+    #ffffff
+  );
+
+  border: 1px solid #e1ecfb;
+  border-radius: 12px;
 }
 
 .location-note-icon {
-  width: 20px;
-  height: 20px;
-  flex-shrink: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 50%;
-  background: #e0f2fe;
-  color: #0284c7;
+  flex-shrink: 0;
+
+  width: 19px;
+  height: 19px;
+
+  color: #2563eb;
   font-size: 11px;
-  font-weight: 800;
+  font-weight: 850;
+
+  background: #dbeafe;
+  border-radius: 50%;
 }
 
 .location-note p {
   margin: 0;
-  font-size: 11px;
-  line-height: 1.5;
 }
 
-/* ========================================
-   UPLOAD
-======================================== */
+/* ==========================================================
+   UPLOAD AREA
+========================================================== */
 
 .upload-area {
   position: relative;
-  min-height: 250px;
-  padding: 35px 25px;
+  isolation: isolate;
+
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
-  border: 1.5px dashed #cbd5e1;
-  border-radius: 18px;
-  background: #fafcff;
+
+  min-width: 0;
+  min-height: 230px;
+  padding: 28px 20px;
+
   text-align: center;
+  overflow: hidden;
+
+  background:
+    radial-gradient(
+      circle at 50% 0%,
+      rgba(96, 165, 250, 0.17),
+      transparent 65%
+    ),
+    linear-gradient(
+      145deg,
+      #f8fbff,
+      #edf5ff
+    );
+
+  border: 2px dashed #bed5f8;
+  border-radius: 18px;
+
   transition:
-    border-color 0.2s ease,
-    background 0.2s ease;
+    border-color 0.25s ease,
+    background 0.25s ease,
+    box-shadow 0.25s ease;
 }
 
 .upload-area:hover {
   border-color: #60a5fa;
-  background: #f8fbff;
+
+  background:
+    radial-gradient(
+      circle at 50% 0%,
+      rgba(96, 165, 250, 0.21),
+      transparent 65%
+    ),
+    linear-gradient(
+      145deg,
+      #f1f7ff,
+      #ffffff
+    );
+
+  box-shadow: inset 0 0 25px rgba(59, 130, 246, 0.035);
 }
 
 .upload-icon {
-  width: 52px;
-  height: 52px;
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-bottom: 14px;
-  border-radius: 15px;
-  background: #eff6ff;
+
+  width: 57px;
+  height: 57px;
+  margin-bottom: 15px;
+
   color: #2563eb;
-  font-size: 25px;
+  font-size: 27px;
   font-weight: 500;
+
+  background: linear-gradient(
+    145deg,
+    #ffffff,
+    #dbeafe
+  );
+
+  border: 1px solid #c7ddff;
+  border-radius: 18px;
+
+  box-shadow:
+    0 7px 18px rgba(37, 99, 235, 0.1),
+    inset 0 1px 0 #ffffff;
+
+  animation: blUploadFloat 3.2s ease-in-out infinite;
 }
 
 .upload-area h3 {
   margin: 0 0 6px;
-  color: #1e293b;
-  font-size: 16px;
+
+  color: #24416d;
+  font-size: 14px;
+  font-weight: 850;
 }
 
-.upload-area p {
-  margin: 0 0 5px;
-  color: #64748b;
-  font-size: 13px;
+.upload-area > p:not(.photo-error) {
+  margin: 0 0 7px;
+
+  color: #7387a3;
+  font-size: 11px;
+  line-height: 1.8;
 }
 
 .upload-area > span {
-  color: #94a3b8;
-  font-size: 11px;
+  margin-bottom: 16px;
+
+  color: #91a0b5;
+  font-size: 10px;
+  line-height: 1.7;
 }
 
-.upload-area input {
-  display: none;
+/* File input tetap terlihat agar dapat digunakan langsung */
+
+.upload-area > input[type="file"] {
+  display: block;
+
+  width: min(100%, 350px);
+  min-width: 0;
+  margin-bottom: 12px;
+
+  color: #64748b;
+  font-size: 10px;
+  text-align: left;
+}
+
+.upload-area > input[type="file"]::file-selector-button {
+  margin-right: 8px;
+  padding: 8px 10px;
+
+  color: #1d4ed8;
+  font-size: 10px;
+  font-weight: 750;
+
+  background: #ffffff;
+  border: 1px solid #c7ddff;
+  border-radius: 8px;
+
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.upload-area > input[type="file"]::file-selector-button:hover {
+  background: #dbeafe;
 }
 
 .upload-button {
-  margin-top: 18px;
-  padding: 10px 18px;
-  border: 1px solid #dbeafe;
-  border-radius: 9px;
-  background: #ffffff;
-  color: #2563eb;
-  font-size: 12px;
-  font-weight: 750;
-  cursor: pointer;
-  transition: 0.2s ease;
-}
-
-.upload-button:hover {
-  background: #eff6ff;
-  border-color: #93c5fd;
-}
-
-/* ========================================
-   SUBMIT
-======================================== */
-
-.laporan-submit {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 25px;
-  padding: 28px 46px;
-  background: #fbfdff;
-  border-top: 1px solid #edf2f7;
-}
-
-.submit-info {
-  display: flex;
-  align-items: flex-start;
-  gap: 10px;
-  max-width: 480px;
-}
-
-.submit-info > span {
-  width: 20px;
-  height: 20px;
-  flex-shrink: 0;
-  display: flex;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  margin-top: 1px;
-  border-radius: 50%;
-  background: #ecfdf5;
-  color: #059669;
+
+  min-height: 37px;
+  padding: 9px 15px;
+
+  color: #ffffff;
   font-size: 11px;
   font-weight: 800;
-}
 
-.submit-info p {
-  margin: 0;
-  color: #94a3b8;
-  font-size: 11px;
-  line-height: 1.55;
-}
-
-.laporan-submit-button {
-  min-width: 180px;
-  height: 50px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 14px;
-  border: none;
-  border-radius: 12px;
   background: linear-gradient(
-    135deg,
+    110deg,
     #2563eb,
-    #0891b2
+    #0ea5e9
   );
-  color: #ffffff;
-  font-family: inherit;
-  font-size: 13px;
-  font-weight: 750;
+
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  border-radius: 10px;
+
+  box-shadow: 0 5px 12px rgba(37, 99, 235, 0.15);
+
   cursor: pointer;
-  box-shadow:
-    0 9px 24px rgba(37, 99, 235, 0.18);
+
   transition:
     transform 0.2s ease,
     box-shadow 0.2s ease;
 }
 
-.laporan-submit-button span:last-child {
-  font-size: 18px;
-  transition: transform 0.2s ease;
-}
-
-.laporan-submit-button:hover {
+.upload-button:hover {
   transform: translateY(-2px);
+  box-shadow: 0 8px 17px rgba(37, 99, 235, 0.2);
+}
+
+/* ==========================================================
+   PHOTO PREVIEW
+========================================================== */
+
+.photo-preview {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+
+  width: 100%;
+  margin-top: 20px;
+  padding: 12px;
+
+  background: #ffffff;
+  border: 1px solid #dbeafe;
+  border-radius: 14px;
+
+  box-shadow: 0 7px 20px rgba(37, 99, 235, 0.05);
+
+  animation: blSectionEnter 0.35s ease both;
+}
+
+.photo-preview img {
+  display: block;
+
+  width: 100%;
+  max-width: 440px;
+  max-height: 320px;
+
+  object-fit: contain;
+
+  background: #f1f5f9;
+  border: 1px solid #e5edf8;
+  border-radius: 10px;
+}
+
+.photo-preview p {
+  width: 100%;
+  margin: 0;
+
+  color: #526987;
+  font-size: 10px;
+  line-height: 1.7;
+
+  overflow-wrap: anywhere;
+}
+
+.photo-preview button {
+  align-self: flex-end;
+
+  min-height: 34px;
+  padding: 8px 12px;
+
+  color: #dc2626;
+  font-size: 10px;
+  font-weight: 800;
+
+  background: #fff5f5;
+  border: 1px solid #fecaca;
+  border-radius: 9px;
+
+  cursor: pointer;
+
+  transition:
+    background 0.2s ease,
+    transform 0.2s ease;
+}
+
+.photo-preview button:hover {
+  background: #fee2e2;
+  transform: translateY(-1px);
+}
+
+.photo-error {
+  width: 100%;
+  margin: 12px 0 0;
+  padding: 11px 12px;
+
+  color: #b91c1c;
+  font-size: 10px;
+  line-height: 1.7;
+
+  background: #fff1f2;
+  border: 1px solid #fecdd3;
+  border-radius: 10px;
+}
+
+/* ==========================================================
+   SUBMIT
+========================================================== */
+
+.laporan-submit {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+
+  margin-top: 1px;
+}
+
+.submit-info {
+  display: flex;
+  align-items: flex-start;
+  gap: 11px;
+
+  padding: 14px 15px;
+
+  color: #617895;
+  font-size: 10px;
+  line-height: 1.85;
+
+  background: linear-gradient(
+    105deg,
+    #eff6ff,
+    #f9fbff
+  );
+
+  border: 1px solid #dce9fb;
+  border-radius: 12px;
+}
+
+.submit-info > span {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+
+  width: 20px;
+  height: 20px;
+
+  color: #ffffff;
+  font-size: 11px;
+  font-weight: 850;
+
+  background: linear-gradient(
+    135deg,
+    #60a5fa,
+    #2563eb
+  );
+
+  border-radius: 50%;
+}
+
+.submit-info p {
+  margin: 0;
+}
+
+.laporan-submit-button {
+  position: relative;
+  isolation: isolate;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+
+  width: 100%;
+  min-height: 56px;
+  padding: 15px 22px;
+  overflow: hidden;
+
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 850;
+  letter-spacing: 0.15px;
+
+  background: linear-gradient(
+    110deg,
+    #1d4ed8,
+    #2563eb 40%,
+    #3b82f6 72%,
+    #0284c7
+  );
+
+  background-size: 200% 100%;
+
+  border: 1px solid rgba(255, 255, 255, 0.45);
+  border-radius: 14px;
+
   box-shadow:
-    0 13px 28px rgba(37, 99, 235, 0.24);
+    0 10px 24px rgba(37, 99, 235, 0.22),
+    0 3px 8px rgba(37, 99, 235, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+
+  cursor: pointer;
+
+  transition:
+    background-position 0.35s ease,
+    transform 0.22s ease,
+    box-shadow 0.22s ease,
+    opacity 0.22s ease;
 }
 
-.laporan-submit-button:hover span:last-child {
-  transform: translateX(4px);
+.laporan-submit-button::before {
+  position: absolute;
+  z-index: -1;
+  top: 0;
+  left: -120%;
+
+  width: 65%;
+  height: 100%;
+
+  content: "";
+
+  background: linear-gradient(
+    110deg,
+    transparent,
+    rgba(255, 255, 255, 0.23),
+    transparent
+  );
+
+  transform: skewX(-20deg);
+  transition: left 0.65s ease;
 }
 
-/* ========================================
+.laporan-submit-button:hover:not(:disabled) {
+  background-position: 100% 50%;
+  transform: translateY(-2px);
+
+  box-shadow:
+    0 15px 29px rgba(37, 99, 235, 0.25),
+    0 4px 10px rgba(37, 99, 235, 0.1);
+}
+
+.laporan-submit-button:hover:not(:disabled)::before {
+  left: 150%;
+}
+
+.laporan-submit-button:active:not(:disabled) {
+  transform: translateY(0) scale(0.995);
+}
+
+.laporan-submit-button:disabled {
+  opacity: 0.68;
+  cursor: wait;
+  box-shadow: none;
+}
+
+/* ==========================================================
+   KEYBOARD ACCESSIBILITY
+========================================================== */
+
+.buat-laporan-page button:focus-visible,
+.buat-laporan-page input:focus-visible,
+.buat-laporan-page select:focus-visible,
+.buat-laporan-page textarea:focus-visible,
+.upload-button:focus-visible {
+  outline: 3px solid rgba(59, 130, 246, 0.38);
+  outline-offset: 3px;
+}
+
+/* ==========================================================
    FOOTER
-======================================== */
+========================================================== */
 
 .buat-laporan-footer {
-  position: relative;
-  z-index: 2;
-  width: min(1050px, 100%);
-  margin: 25px auto 0;
+  width: min(100%, 920px);
+  margin: 24px auto 0;
+  padding: 13px 10px;
+
+  color: #8091aa;
+  font-size: 10px;
+  line-height: 1.8;
   text-align: center;
-  color: #94a3b8;
-  font-size: 11px;
+
+  animation: blEnter 0.65s ease both;
+  animation-delay: 0.25s;
 }
 
-/* ========================================
-   RESPONSIVE
-======================================== */
+/* ==========================================================
+   ANIMATIONS
+========================================================== */
 
-@media (max-width: 760px) {
+@keyframes blEnter {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes blCardEnter {
+  from {
+    opacity: 0;
+    transform: translateY(20px) scale(0.995);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes blSectionEnter {
+  from {
+    opacity: 0;
+    transform: translateY(9px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes blAmbientOne {
+  0%, 100% {
+    transform: translate(0, 0);
+  }
+
+  50% {
+    transform: translate(25px, 22px);
+  }
+}
+
+@keyframes blAmbientTwo {
+  0%, 100% {
+    transform: translate(0, 0);
+  }
+
+  50% {
+    transform: translate(-24px, -20px);
+  }
+}
+
+@keyframes blRotate {
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes blPulse {
+  0%, 100% {
+    box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1);
+  }
+
+  50% {
+    box-shadow: 0 0 0 7px rgba(59, 130, 246, 0.04);
+  }
+}
+
+@keyframes blGradient {
+  from {
+    background-position: 0% 50%;
+  }
+
+  to {
+    background-position: 200% 50%;
+  }
+}
+
+@keyframes blUploadFloat {
+  0%, 100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(-4px);
+  }
+}
+
+/* ==========================================================
+   TABLET
+========================================================== */
+
+@media (max-width: 900px) {
   .buat-laporan-page {
-    padding: 0 14px 40px;
+    padding: 32px 20px 25px;
   }
 
-  .buat-laporan-header {
-    padding: 25px 0 28px;
+  .buat-laporan-header,
+  .buat-laporan-card,
+  .buat-laporan-footer {
+    width: 100%;
   }
 
-  .buat-laporan-back {
-    margin-bottom: 25px;
-  }
-
-  .buat-laporan-heading h1 {
-    font-size: 37px;
-  }
-
-  .buat-laporan-heading p {
-    font-size: 14px;
-    line-height: 1.65;
-  }
-
-  .buat-laporan-card {
-    border-radius: 20px;
+  .buat-laporan-form {
+    gap: 19px;
+    padding: 25px;
   }
 
   .form-section {
-    padding: 30px 20px;
+    padding: 22px;
   }
 
-  .form-section-header {
-    gap: 12px;
-    margin-bottom: 25px;
+  .buat-laporan-heading h1 {
+    font-size: clamp(30px, 4.5vw, 39px);
+  }
+}
+
+/* ==========================================================
+   MOBILE
+========================================================== */
+
+@media (max-width: 600px) {
+  .buat-laporan-page {
+    padding: 22px 12px 18px;
   }
 
-  .form-section-number {
-    width: 38px;
-    height: 38px;
-    border-radius: 11px;
+  .buat-laporan-page::before {
+    left: -210px;
+    width: 320px;
+    height: 320px;
+  }
+
+  .buat-laporan-page::after {
+    right: -220px;
+    width: 330px;
+    height: 330px;
+  }
+
+  .buat-laporan-grid {
+    background-size: 32px 32px;
+  }
+
+  .buat-laporan-orb-one {
+    top: 100px;
+    right: -55px;
+    width: 120px;
+    height: 120px;
+  }
+
+  .buat-laporan-orb-two {
+    left: -40px;
+    width: 90px;
+    height: 90px;
+  }
+
+  /* Header */
+
+  .buat-laporan-header {
+    margin-bottom: 21px;
+  }
+
+  .buat-laporan-back {
+    min-height: 39px;
+    margin-bottom: 20px;
+    padding: 9px 13px;
     font-size: 11px;
   }
 
+  .buat-laporan-label {
+    margin-bottom: 12px;
+    padding: 7px 11px;
+    font-size: 9px;
+    letter-spacing: 1px;
+  }
+
+  .buat-laporan-heading h1 {
+    font-size: clamp(27px, 7.3vw, 34px);
+    letter-spacing: -0.9px;
+    line-height: 1.2;
+  }
+
+  .buat-laporan-heading > p {
+    margin-top: 10px;
+    font-size: 11px;
+    line-height: 1.85;
+  }
+
+  /* Main card */
+
+  .buat-laporan-card {
+    border-radius: 21px;
+
+    box-shadow:
+      0 19px 45px rgba(37, 99, 235, 0.085),
+      0 5px 16px rgba(30, 64, 175, 0.035);
+  }
+
+  .buat-laporan-form {
+    gap: 15px;
+    padding: 13px;
+  }
+
+  /* Section cards */
+
+  .form-section {
+    padding: 17px 13px;
+    border-radius: 16px;
+  }
+
+  .form-section-header {
+    gap: 10px;
+    margin-bottom: 19px;
+    padding-bottom: 15px;
+  }
+
+  .form-section-number {
+    width: 36px;
+    height: 36px;
+    font-size: 11px;
+    border-radius: 12px;
+    border-width: 2px;
+  }
+
   .form-section-header h2 {
-    font-size: 18px;
+    font-size: 13px;
   }
 
   .form-section-header p {
+    font-size: 10px;
+  }
+
+  /* Form */
+
+  .laporan-form-group {
+    gap: 8px;
+    margin-bottom: 18px;
+  }
+
+  .laporan-form-group label {
+    font-size: 11px;
+  }
+
+  .laporan-form-group input,
+  .laporan-form-group select,
+  .laporan-form-group textarea {
+    min-height: 44px;
+    padding: 11px;
+
+    font-size: 12px;
+    border-radius: 10px;
+  }
+
+  .laporan-form-group textarea {
+    min-height: 120px;
+  }
+
+  .laporan-form-group small {
+    font-size: 10px;
+  }
+
+  /* GPS */
+
+  .location-detector {
+    margin-bottom: 17px;
+    padding: 16px 12px;
+    border-radius: 14px;
+  }
+
+  .location-detector-top {
+    gap: 10px;
+    margin-bottom: 14px;
+  }
+
+  .location-icon {
+    width: 39px;
+    height: 39px;
+    font-size: 23px;
+    border-radius: 12px;
+  }
+
+  .location-detector-content strong {
     font-size: 12px;
   }
 
+  .location-detector-content p {
+    font-size: 10px;
+  }
+
+  .location-button {
+    min-height: 43px;
+    padding: 11px 10px;
+    font-size: 11px;
+    border-radius: 10px;
+  }
+
+  .location-result {
+    margin-top: 15px;
+    padding: 13px 10px;
+    border-radius: 13px;
+  }
+
+  .location-result-header {
+    align-items: flex-start;
+    flex-wrap: wrap;
+    gap: 9px;
+    margin-bottom: 16px;
+  }
+
+  .location-success-icon {
+    width: 33px;
+    height: 33px;
+    border-radius: 10px;
+  }
+
+  .location-success-title {
+    font-size: 11px;
+  }
+
+  .location-success-subtitle {
+    font-size: 10px;
+  }
+
+  .location-status {
+    margin-left: 42px;
+    padding: 5px 8px;
+    font-size: 8px;
+  }
+
   .location-detail-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 13px;
   }
 
   .location-edit-field-full {
     grid-column: auto;
   }
 
-  .location-result {
-    padding: 18px;
+  .location-edit-field label {
+    font-size: 10px;
   }
 
-  .location-result-header {
+  .location-edit-field input,
+  .location-edit-field select,
+  .location-edit-field textarea {
+    min-height: 41px;
+    padding: 10px;
+    font-size: 11px;
+    border-radius: 9px;
+  }
+
+  .location-edit-field textarea {
+    min-height: 75px;
+  }
+
+  .location-address-help,
+  .location-edit-field small {
+    font-size: 9px;
+  }
+
+  .location-coordinate {
     align-items: flex-start;
+    flex-direction: column;
+    gap: 8px;
+    padding: 11px;
   }
 
-  .location-status {
-    display: none;
+  .location-coordinate strong {
+    font-size: 10px;
   }
+
+  .coordinate-badge {
+    align-self: flex-start;
+  }
+
+  .location-edit-info,
+  .location-note {
+    padding: 10px;
+    font-size: 9px;
+  }
+
+  /* Upload */
+
+  .upload-area {
+    min-height: 200px;
+    padding: 21px 11px;
+    border-radius: 14px;
+  }
+
+  .upload-icon {
+    width: 49px;
+    height: 49px;
+    margin-bottom: 12px;
+    font-size: 23px;
+    border-radius: 15px;
+  }
+
+  .upload-area h3 {
+    font-size: 12px;
+  }
+
+  .upload-area > p:not(.photo-error) {
+    font-size: 10px;
+  }
+
+  .upload-area > span {
+    font-size: 9px;
+  }
+
+  .upload-area > input[type="file"] {
+    font-size: 9px;
+  }
+
+  .upload-area > input[type="file"]::file-selector-button {
+    padding: 7px 8px;
+    font-size: 9px;
+  }
+
+  .upload-button {
+    min-height: 35px;
+    padding: 8px 12px;
+    font-size: 10px;
+  }
+
+  .photo-preview {
+    padding: 9px;
+    border-radius: 12px;
+  }
+
+  .photo-preview img {
+    max-height: 240px;
+  }
+
+  /* Submit */
 
   .laporan-submit {
-    flex-direction: column;
-    align-items: stretch;
-    padding: 24px 20px;
+    gap: 12px;
+  }
+
+  .submit-info {
+    gap: 9px;
+    padding: 11px;
+    font-size: 9px;
+    border-radius: 10px;
   }
 
   .laporan-submit-button {
-    width: 100%;
+    min-height: 49px;
+    padding: 12px;
+    font-size: 11px;
+    border-radius: 11px;
+  }
+
+  .buat-laporan-footer {
+    margin-top: 14px;
+    padding: 10px 4px;
+    font-size: 9px;
   }
 }
 
-@media (max-width: 480px) {
+/* ==========================================================
+   VERY SMALL MOBILE
+========================================================== */
+
+@media (max-width: 360px) {
+  .buat-laporan-page {
+    padding-right: 8px;
+    padding-left: 8px;
+  }
+
+  .buat-laporan-form {
+    padding: 9px;
+  }
+
+  .form-section {
+    padding: 13px 10px;
+  }
+
+  .form-section-header {
+    gap: 8px;
+  }
+
+  .form-section-number {
+    width: 32px;
+    height: 32px;
+    font-size: 10px;
+  }
+
   .buat-laporan-heading h1 {
-    font-size: 32px;
+    font-size: 26px;
   }
 
   .location-detector {
-    padding: 17px;
+    padding: 13px 9px;
   }
 
   .location-result {
-    padding: 15px;
+    padding: 11px 8px;
   }
 
-  .location-success-subtitle {
-    line-height: 1.5;
-  }
-
-  .upload-area {
-    min-height: 220px;
-  }
-
-  .location-address-help {
-    padding: 10px 11px;
-  }
-
-  .location-address-help p {
-    font-size: 10.5px;
+  .location-status {
+    margin-left: 0;
   }
 }
-.photo-preview {
-  width: 100%;
-  margin-top: 20px;
+
+/* ==========================================================
+   REDUCED MOTION
+========================================================== */
+
+@media (prefers-reduced-motion: reduce) {
+  .buat-laporan-page *,
+  .buat-laporan-page *::before,
+  .buat-laporan-page *::after {
+    animation: none !important;
+    transition: none !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* =====================================
+   UPLOAD FOTO LAPORKITA
+===================================== */
+
+.buat-laporan-page .upload-area {
+  position: relative;
+  overflow: hidden;
+  margin-top: 12px;
+  border: 2px dashed #b9d5ff;
+  border-radius: 22px;
+  background:
+    radial-gradient(
+      circle at 100% 0%,
+      rgba(96, 165, 250, 0.16),
+      transparent 42%
+    ),
+    linear-gradient(135deg, #fafdff, #edf5ff);
+  transition:
+    border-color 0.25s ease,
+    box-shadow 0.25s ease,
+    transform 0.25s ease;
+}
+
+.buat-laporan-page .upload-area:hover {
+  border-color: #3b82f6;
+  box-shadow: 0 14px 35px rgba(37, 99, 235, 0.1);
+  transform: translateY(-2px);
+}
+
+/* Input file disembunyikan, tetapi tetap bisa diakses */
+.buat-laporan-page .upload-input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+.buat-laporan-page .upload-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 38px 24px;
   text-align: center;
+  cursor: pointer;
 }
 
-.photo-preview img {
-  width: 100%;
-  max-width: 400px;
-  max-height: 260px;
-  object-fit: cover;
+.buat-laporan-page .upload-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 70px;
+  height: 70px;
+  margin-bottom: 20px;
+  color: #fff;
+  background: linear-gradient(
+    135deg,
+    #60a5fa,
+    #3b82f6,
+    #1d4ed8
+  );
+  border-radius: 22px;
+  box-shadow: 0 10px 24px rgba(37, 99, 235, 0.24);
+  transition: transform 0.25s ease;
+}
+
+.buat-laporan-page .upload-icon svg {
+  width: 32px;
+  height: 32px;
+}
+
+.buat-laporan-page .upload-area:hover .upload-icon {
+  transform: translateY(-3px) rotate(-3deg);
+}
+
+.buat-laporan-page .upload-content h3 {
+  margin: 0 0 8px;
+  color: #172554;
+  font-size: 19px;
+  font-weight: 750;
+}
+
+.buat-laporan-page .upload-content p {
+  max-width: 380px;
+  margin: 0 0 22px;
+  color: #64748b;
+  font-size: 14px;
+  line-height: 1.75;
+}
+
+.buat-laporan-page .upload-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 46px;
+  padding: 0 26px;
+  color: #fff;
+  font-size: 14px;
+  font-weight: 700;
+  background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+  border-radius: 12px;
+  box-shadow: 0 7px 18px rgba(37, 99, 235, 0.22);
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.buat-laporan-page .upload-area:hover .upload-button {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 22px rgba(37, 99, 235, 0.3);
+}
+
+.buat-laporan-page .upload-content small {
+  margin-top: 15px;
+  color: #94a3b8;
+  font-size: 12px;
+}
+
+/* Akses keyboard */
+.buat-laporan-page .upload-input:focus-visible + .upload-content {
+  outline: 3px solid #60a5fa;
+  outline-offset: -5px;
+  border-radius: 18px;
+}
+
+/* =====================================
+   PREVIEW FOTO
+===================================== */
+
+.buat-laporan-page .photo-preview {
+  padding: 20px;
+  background: rgba(255, 255, 255, 0.85);
+  animation: laporanPhotoIn 0.3s ease both;
+}
+
+.buat-laporan-page .photo-preview-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  margin-bottom: 18px;
+}
+
+.buat-laporan-page .photo-preview-heading > div {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.buat-laporan-page .photo-preview-check {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  color: #15803d;
+  background: #dcfce7;
+  border-radius: 12px;
+  font-weight: 800;
+}
+
+.buat-laporan-page .photo-preview-heading strong {
   display: block;
-  margin: 0 auto;
+  color: #172554;
+  font-size: 14px;
+}
+
+.buat-laporan-page .photo-preview-heading p {
+  margin: 4px 0 0;
+  color: #64748b;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.buat-laporan-page .photo-preview > img {
+  display: block;
+  width: 100%;
+  max-height: 360px;
+  object-fit: contain;
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  border-radius: 15px;
+}
+
+.buat-laporan-page .photo-preview-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  margin-top: 15px;
+  padding: 14px;
+  background: #f8fbff;
+  border: 1px solid #e5efff;
   border-radius: 14px;
 }
 
-.photo-preview p {
-  margin-top: 10px;
-  color: #64748b;
+.buat-laporan-page .photo-file-info {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  min-width: 0;
+}
+
+.buat-laporan-page .photo-file-icon {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  color: #2563eb;
+  background: #dbeafe;
+  border-radius: 11px;
+  font-size: 22px;
+}
+
+.buat-laporan-page .photo-file-info > div {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.buat-laporan-page .photo-file-info strong {
+  overflow-wrap: anywhere;
+  color: #334155;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.buat-laporan-page .photo-file-info small {
+  color: #94a3b8;
+  font-size: 11px;
+}
+
+.buat-laporan-page .photo-change-button,
+.buat-laporan-page .remove-photo-button {
+  flex-shrink: 0;
+  min-height: 38px;
+  padding: 0 13px;
+  border-radius: 10px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition:
+    background 0.2s ease,
+    transform 0.2s ease;
+}
+
+.buat-laporan-page .photo-change-button {
+  color: #1d4ed8;
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+}
+
+.buat-laporan-page .photo-change-button:hover {
+  background: #dbeafe;
+  transform: translateY(-1px);
+}
+
+.buat-laporan-page .remove-photo-button {
+  color: #dc2626;
+  background: #fff1f2;
+  border: 1px solid #fecaca;
+}
+
+.buat-laporan-page .remove-photo-button:hover {
+  background: #ffe4e6;
+  transform: translateY(-1px);
+}
+
+.buat-laporan-page .photo-error {
+  margin: 12px 18px 18px;
+  padding: 11px 14px;
+  color: #b91c1c;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 11px;
   font-size: 13px;
-  word-break: break-word;
+  line-height: 1.6;
+}
+
+@keyframes laporanPhotoIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* =====================================
+   RESPONSIVE
+===================================== */
+
+@media (max-width: 600px) {
+  .buat-laporan-page .upload-content {
+    padding: 30px 17px;
+  }
+
+  .buat-laporan-page .upload-icon {
+    width: 60px;
+    height: 60px;
+    border-radius: 19px;
+  }
+
+  .buat-laporan-page .upload-content h3 {
+    font-size: 17px;
+  }
+
+  .buat-laporan-page .upload-content p {
+    font-size: 13px;
+  }
+
+  .buat-laporan-page .photo-preview {
+    padding: 13px;
+  }
+
+  .buat-laporan-page .photo-preview-heading {
+    align-items: flex-start;
+  }
+
+  .buat-laporan-page .photo-preview-footer {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .buat-laporan-page .photo-file-info {
+    width: 100%;
+  }
+
+  .buat-laporan-page .photo-change-button,
+  .buat-laporan-page .remove-photo-button {
+    min-height: 40px;
+  }
+
+  .buat-laporan-page .photo-preview > img {
+    max-height: 260px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .buat-laporan-page .upload-area,
+  .buat-laporan-page .upload-icon,
+  .buat-laporan-page .upload-button,
+  .buat-laporan-page .photo-change-button,
+  .buat-laporan-page .remove-photo-button {
+    transition: none;
+  }
+
+  .buat-laporan-page .photo-preview {
+    animation: none;
+  }
 }

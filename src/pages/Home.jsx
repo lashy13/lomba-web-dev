@@ -1,35 +1,34 @@
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import Navbar from "../components/Navbar";
+
 import "../styles/home.css";
 import "../styles/home-sections.css";
-import "../styles/about.css";
+
+import logoLaporkita from "../assets/logo-laporkita.png";
 
 const API_URL = (
-  import.meta.env.VITE_API_URL ||
-  "https://laporkita.lashy.blitz.cloud"
+  import.meta.env.VITE_API_URL || "https://laporkita.lashy.blitz.cloud"
 ).replace(/\/+$/, "");
 
-const INITIAL_STATS = {
-  total: 0,
-  diproses: 0,
-  selesai: 0,
-};
+/* =========================
+   USER & DATA HELPERS
+========================= */
 
 function getStoredUser() {
   try {
-    const rawUser = localStorage.getItem("user");
-    return rawUser ? JSON.parse(rawUser) : null;
+    const user = localStorage.getItem("user");
+    return user ? JSON.parse(user) : null;
   } catch {
     return null;
   }
 }
 
-function formatDate(dateValue) {
-  if (!dateValue) return "Tanggal tidak tersedia";
+function formatDate(value) {
+  if (!value) return "Tanggal tidak tersedia";
 
-  const date = new Date(dateValue);
+  const date = new Date(value);
 
   if (Number.isNaN(date.getTime())) {
     return "Tanggal tidak tersedia";
@@ -51,7 +50,7 @@ function getStatusClass(status) {
 
   if (value === "selesai") return "done";
   if (value === "dalam proses") return "process";
-  if (value === "diverifikasi") return "review";
+  if (value === "diverifikasi") return "verified";
 
   return "review";
 }
@@ -70,8 +69,9 @@ function getCategoryName(report) {
   return (
     report?.category_name ||
     report?.categoryName ||
+    report?.category?.name ||
     report?.category ||
-    "Kategori lainnya"
+    "Lainnya"
   );
 }
 
@@ -81,162 +81,380 @@ function getLocation(report) {
     report?.regencyName ||
     report?.district_name ||
     report?.districtName ||
-    report?.address;
+    report?.address ||
+    report?.location ||
+    report?.lokasi;
 
   return typeof location === "string" && location.trim()
     ? location.trim()
-    : "Lokasi belum dicantumkan";
+    : "Lokasi belum tersedia";
 }
 
-function getReportImage(report) {
-  const image =
-    report?.image_url ||
-    report?.imageUrl ||
-    report?.photo_url ||
-    report?.photoUrl ||
-    report?.image ||
-    report?.photo;
-
-  return typeof image === "string" && image.trim()
-    ? image.trim()
-    : null;
-}
-
-function getDetailPath(report) {
-  return `/detail-laporan?id=${encodeURIComponent(report.id)}`;
-}
-
-function getReportTitle(report) {
-  return typeof report?.title === "string" && report.title.trim()
-    ? report.title.trim()
-    : "Laporan tanpa judul";
-}
-
-function getReportDescription(report, maxLength = 130) {
+function getDescription(report) {
   const description =
     typeof report?.description === "string"
       ? report.description.trim()
-      : "";
+      : typeof report?.deskripsi === "string"
+        ? report.deskripsi.trim()
+        : "";
 
   if (!description) return "Tidak ada deskripsi laporan.";
 
-  return description.length > maxLength
-    ? `${description.slice(0, maxLength).trimEnd()}...`
+  return description.length > 120
+    ? `${description.slice(0, 120).trimEnd()}...`
     : description;
 }
 
+function getReporterName(report) {
+  const reporter =
+    report?.reporter_name ||
+    report?.reporterName ||
+    report?.username ||
+    report?.full_name ||
+    report?.fullName ||
+    report?.user?.username ||
+    report?.user?.name ||
+    report?.user?.full_name ||
+    report?.pelapor?.nama ||
+    report?.pelapor?.name;
+
+  if (typeof reporter === "string" && reporter.trim()) {
+    return reporter.trim();
+  }
+
+  return "Pelapor LaporKita";
+}
+
+function getReporterInitial(name) {
+  const cleanName = String(name || "").trim();
+
+  return cleanName ? cleanName.charAt(0).toUpperCase() : "P";
+}
+
 function calculateStats(reports) {
-  const normalizedReports = reports.map((report) => ({
-    ...report,
-    normalizedStatus: normalizeStatus(report.status),
-  }));
-
   return {
-    total: normalizedReports.length,
+    total: reports.length,
 
-    diproses: normalizedReports.filter((report) =>
+    diproses: reports.filter((report) =>
       ["diverifikasi", "dalam proses"].includes(
-        report.normalizedStatus
-      )
+        normalizeStatus(report.status),
+      ),
     ).length,
 
-    selesai: normalizedReports.filter(
-      (report) => report.normalizedStatus === "selesai"
+    selesai: reports.filter(
+      (report) => normalizeStatus(report.status) === "selesai",
     ).length,
   };
 }
 
-function StatCard({ icon, value, title, description }) {
+/* =========================
+   ICON COMPONENT
+========================= */
+
+function Icon({ name, size = 22, strokeWidth = 1.8 }) {
+  const paths = {
+    arrow: (
+      <>
+        <path d="M5 12h14" />
+        <path d="m12 5 7 7-7 7" />
+      </>
+    ),
+
+    arrowUp: (
+      <>
+        <path d="M7 17 17 7" />
+        <path d="M7 7h10v10" />
+      </>
+    ),
+
+    map: (
+      <>
+        <path d="M20 10c0 5-8 12-8 12S4 15 4 10a8 8 0 1 1 16 0Z" />
+        <circle cx="12" cy="10" r="3" />
+      </>
+    ),
+
+    document: (
+      <>
+        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z" />
+        <path d="M14 2v6h6" />
+        <path d="M8 13h8M8 17h8" />
+      </>
+    ),
+
+    check: (
+      <>
+        <circle cx="12" cy="12" r="9" />
+        <path d="m8 12 3 3 5-6" />
+      </>
+    ),
+
+    clock: (
+      <>
+        <circle cx="12" cy="12" r="9" />
+        <path d="M12 7v5l3 2" />
+      </>
+    ),
+
+    shield: (
+      <>
+        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z" />
+        <path d="m9 12 2 2 4-4" />
+      </>
+    ),
+
+    bolt: <path d="M13 2 3 14h9l-1 8 10-12h-9l1-8Z" />,
+
+    building: (
+      <>
+        <rect x="4" y="3" width="16" height="18" rx="2" />
+        <path d="M9 7h2M14 7h2M9 11h2M14 11h2M9 15h2M14 15h2M10 21v-4h4v4" />
+      </>
+    ),
+
+    road: (
+      <>
+        <path d="M8 3 4 21M16 3l4 18M12 3v4M12 11v4M12 19v2" />
+      </>
+    ),
+
+    leaf: (
+      <>
+        <path d="M20 4c-10 0-16 5-16 12a5 5 0 0 0 5 5c7 0 12-6 11-17Z" />
+        <path d="M4 21c3-6 7-10 13-13" />
+      </>
+    ),
+
+    light: (
+      <>
+        <path d="M9 18h6M10 22h4" />
+        <path d="M9 14c-.5-2-3-3-3-7a6 6 0 0 1 12 0c0 4-2.5 5-3 7Z" />
+      </>
+    ),
+
+    users: (
+      <>
+        <circle cx="9" cy="8" r="3" />
+        <path d="M3 20v-2a6 6 0 0 1 12 0v2" />
+        <path d="M17 5a3 3 0 0 1 0 6M17 14a5 5 0 0 1 4 5v1" />
+      </>
+    ),
+
+    sparkle: (
+      <>
+        <path d="m12 2 2.5 7.5L22 12l-7.5 2.5L12 22l-2.5-7.5L2 12l7.5-2.5Z" />
+      </>
+    ),
+
+    search: (
+      <>
+        <circle cx="11" cy="11" r="7" />
+        <path d="m16 16 5 5" />
+      </>
+    ),
+  };
+
   return (
-    <article className="stat-card">
-      <div className="stat-icon" aria-hidden="true">
-        {icon}
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={strokeWidth}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      {paths[name] || paths.document}
+    </svg>
+  );
+}
+
+/* =========================
+   SCROLL REVEAL
+========================= */
+
+function useScrollReveal() {
+  useEffect(() => {
+    const elements = document.querySelectorAll(".reveal");
+
+    if (!("IntersectionObserver" in window)) {
+      elements.forEach((element) => {
+        element.classList.add("reveal-visible");
+      });
+
+      return;
+    }
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add("reveal-visible");
+            observer.unobserve(entry.target);
+          }
+        });
+      },
+      {
+        threshold: 0.08,
+        rootMargin: "0px 0px -35px 0px",
+      },
+    );
+
+    elements.forEach((element) => observer.observe(element));
+
+    return () => observer.disconnect();
+  }, []);
+}
+
+/* =========================
+   STAT CARD
+========================= */
+
+function StatCard({ icon, value, title, description, type }) {
+  return (
+    <article className={`home-stat-card reveal ${type}`}>
+      <div className="home-stat-top">
+        <div className="home-stat-icon">
+          <Icon name={icon} size={25} />
+        </div>
+
+        <span className="home-stat-decoration">
+          <Icon name="arrowUp" size={18} />
+        </span>
       </div>
 
-      <div className="stat-value">
-        {value.toLocaleString("id-ID")}
-      </div>
+      <div className="home-stat-value">{value.toLocaleString("id-ID")}</div>
 
-      <div className="stat-title">{title}</div>
+      <h3>{title}</h3>
 
-      <div className="stat-description">{description}</div>
+      <p>{description}</p>
+
+      <div className="home-stat-line" />
     </article>
   );
 }
 
-function LatestReportCard({ report }) {
-  const [imageFailed, setImageFailed] = useState(false);
+/* =========================
+   REPORT CARD
+========================= */
 
-  const image = getReportImage(report);
-  const title = getReportTitle(report);
+function ReportCard({ report }) {
+  const title = report.title?.trim() || "Laporan tanpa judul";
+  const reporterName = getReporterName(report);
+  const reporterInitial = getReporterInitial(reporterName);
+  const reportId = report.id;
 
   return (
-    <Link
-      to={getDetailPath(report)}
-      className="latest-card"
-      aria-label={`Lihat detail laporan: ${title}`}
-    >
-      <div className="latest-card-image">
-        {image && !imageFailed ? (
-          <img
-            src={image}
-            alt={`Bukti laporan ${title}`}
-            loading="lazy"
-            onError={() => setImageFailed(true)}
-          />
-        ) : (
-          <div className="latest-placeholder">
-            {getCategoryName(report)}
-          </div>
-        )}
+    <article className="home-report-card">
+      {/* Header kartu */}
+      <div className="home-report-top">
+        <span className="home-report-category">
+          <Icon name="document" size={15} />
+          {getCategoryName(report)}
+        </span>
 
         <span
-          className={`latest-status ${getStatusClass(report.status)}`}
+          className={`home-report-status ${getStatusClass(report.status)}`}
         >
+          <span className="status-dot" />
           {getStatusLabel(report.status)}
         </span>
       </div>
 
-      <div className="latest-card-content">
-        <div className="latest-category">
-          {getCategoryName(report)}
-        </div>
+      {/* Judul dan deskripsi */}
+      <div className="home-report-content">
+        <h3 title={title}>{title}</h3>
+        <p>{getDescription(report)}</p>
+      </div>
 
-        <h3>{title}</h3>
-
-        <p>{getReportDescription(report)}</p>
-
-        <div className="latest-meta">
-          <span title={getLocation(report)}>
-            <span aria-hidden="true">◉ </span>
-            {getLocation(report)}
+      {/* Lokasi dan tanggal */}
+      <div className="home-report-bottom">
+        <div className="home-report-location">
+          <span className="home-report-icon">
+            <Icon name="map" size={17} />
           </span>
 
-          <span>{formatDate(report.created_at)}</span>
+          <div className="home-report-meta">
+            <span className="home-report-meta-label">
+              Lokasi kejadian
+            </span>
+
+            <span className="home-report-meta-value">
+              {getLocation(report)}
+            </span>
+          </div>
+        </div>
+
+        <div className="home-report-date">
+          <span className="home-report-meta-label">
+            Tanggal laporan
+          </span>
+
+          <span className="home-report-meta-value">
+            {formatDate(report.created_at || report.createdAt)}
+          </span>
         </div>
       </div>
-    </Link>
+
+      {/* Informasi pelapor dan ID */}
+      <div className="home-report-reporter">
+        <div className="home-reporter-avatar" aria-hidden="true">
+          {reporterInitial}
+        </div>
+
+        <div className="home-reporter-info">
+          <span className="home-reporter-label">
+            Dilaporkan oleh
+          </span>
+
+          <strong title={reporterName}>
+            {reporterName}
+          </strong>
+        </div>
+
+        <div className="home-report-number">
+          <span>ID Laporan</span>
+          <strong title={`#${reportId}`}>#{reportId}</strong>
+        </div>
+      </div>
+
+      {/* Tombol detail laporan */}
+      <Link
+        to={`/detail-laporan/${encodeURIComponent(reportId)}`}
+        className="home-report-link"
+        aria-label={`Lihat detail laporan ${title}`}
+      >
+        <span>Lihat Detail Laporan</span>
+        <Icon name="arrow" size={18} />
+      </Link>
+    </article>
   );
 }
 
-function Home() {
+
+/* =========================
+   MAIN HOME
+========================= */
+
+export default function Home() {
   const [isLoggedIn, setIsLoggedIn] = useState(
-    () => localStorage.getItem("isLoggedIn") === "true"
+    () => localStorage.getItem("isLoggedIn") === "true",
   );
 
   const [user, setUser] = useState(getStoredUser);
-
   const [reports, setReports] = useState([]);
-  const [reportsLoading, setReportsLoading] = useState(true);
-  const [reportsError, setReportsError] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [refreshKey, setRefreshKey] = useState(0);
 
-  const [stats, setStats] = useState(INITIAL_STATS);
+  useScrollReveal();
+
+  /* AUTH */
 
   const updateAuth = useCallback(() => {
-    setIsLoggedIn(
-      localStorage.getItem("isLoggedIn") === "true"
-    );
-
+    setIsLoggedIn(localStorage.getItem("isLoggedIn") === "true");
     setUser(getStoredUser());
   }, []);
 
@@ -252,23 +470,14 @@ function Home() {
     };
   }, [updateAuth]);
 
+  /* FETCH REPORTS */
+
   useEffect(() => {
-    let active = true;
-    let requestId = 0;
-    let currentController = null;
+    const controller = new AbortController();
 
     async function fetchReports() {
-      const thisRequestId = ++requestId;
-
-      if (currentController) {
-        currentController.abort();
-      }
-
-      const controller = new AbortController();
-      currentController = controller;
-
-      setReportsLoading(true);
-      setReportsError("");
+      setLoading(true);
+      setError("");
 
       try {
         const response = await fetch(`${API_URL}/api/reports`, {
@@ -279,689 +488,680 @@ function Home() {
         });
 
         if (!response.ok) {
-          throw new Error(
-            `Gagal mengambil laporan (HTTP ${response.status}).`
-          );
+          throw new Error(`HTTP ${response.status}`);
         }
 
         const result = await response.json();
 
         if (!result.success || !Array.isArray(result.data)) {
-          throw new Error("Format data laporan tidak sesuai.");
+          throw new Error("Format data API tidak valid");
         }
 
-        if (!active || thisRequestId !== requestId) return;
+        const validReports = result.data
+          .filter(
+            (report) =>
+              report &&
+              report.id !== undefined &&
+              report.id !== null,
+          )
+          .sort((a, b) => {
+            const dateA = new Date(a.created_at || a.createdAt).getTime() || 0;
+            const dateB = new Date(b.created_at || b.createdAt).getTime() || 0;
 
-        const fetchedReports = result.data.filter(
-          (report) =>
-            report &&
-            report.id !== undefined &&
-            report.id !== null
-        );
+            return dateB - dateA;
+          });
 
-        setReports(fetchedReports.slice(0, 3));
-        setStats(calculateStats(fetchedReports));
-      } catch (error) {
-        if (
-          error.name === "AbortError" ||
-          !active ||
-          thisRequestId !== requestId
-        ) {
-          return;
+        if (!controller.signal.aborted) {
+          setReports(validReports);
         }
+      } catch (err) {
+        if (err.name === "AbortError") return;
 
-        console.error("Gagal mengambil laporan:", error);
+        console.error("Gagal mengambil laporan:", err);
 
-        setReportsError(
-          "Laporan terbaru belum dapat dimuat. Silakan coba lagi."
-        );
+        setError("Data laporan belum dapat dimuat. Silakan coba kembali.");
       } finally {
-        if (active && thisRequestId === requestId) {
-          setReportsLoading(false);
+        if (!controller.signal.aborted) {
+          setLoading(false);
         }
       }
     }
 
-    const refreshReports = () => {
-      fetchReports();
-    };
-
     fetchReports();
 
-    window.addEventListener("laporanUpdated", refreshReports);
+    const handleUpdate = () => {
+      setRefreshKey((prev) => prev + 1);
+    };
+
+    window.addEventListener("laporanUpdated", handleUpdate);
 
     return () => {
-      active = false;
-      requestId += 1;
-
-      if (currentController) {
-        currentController.abort();
-      }
-
-      window.removeEventListener("laporanUpdated", refreshReports);
+      controller.abort();
+      window.removeEventListener("laporanUpdated", handleUpdate);
     };
-  }, []);
+  }, [refreshKey]);
 
-  const username =
-    user?.username ||
-    user?.name ||
-    "Pengguna";
+  const stats = useMemo(() => calculateStats(reports), [reports]);
 
-  const reportPath = isLoggedIn
-    ? "/buat-laporan"
-    : "/login";
+  const latestReports = useMemo(() => reports.slice(0, 3), [reports]);
+
+  const username = user?.username || user?.name || "Pengguna";
+
+  const reportPath = isLoggedIn ? "/buat-laporan" : "/login";
 
   const categories = [
     {
-      category: "infrastruktur",
-      icon: "⌂",
+      id: "infrastruktur",
+      icon: "road",
       title: "Infrastruktur",
-      description:
-        "Jalan rusak, jembatan, trotoar, dan drainase.",
+      description: "Jalan rusak, jembatan, trotoar, dan fasilitas jalan.",
+      color: "blue",
     },
     {
-      category: "fasilitas",
-      icon: "▣",
+      id: "fasilitas",
+      icon: "building",
       title: "Fasilitas Umum",
-      description:
-        "Taman, halte, dan fasilitas masyarakat.",
+      description: "Taman, halte, bangunan publik, dan fasilitas masyarakat.",
+      color: "purple",
     },
     {
-      category: "lingkungan",
-      icon: "♧",
+      id: "lingkungan",
+      icon: "leaf",
       title: "Lingkungan",
-      description:
-        "Sampah, kebersihan, banjir, dan lingkungan.",
+      description: "Sampah, pencemaran, banjir, dan kebersihan.",
+      color: "green",
     },
     {
-      category: "penerangan",
-      icon: "✦",
+      id: "penerangan",
+      icon: "light",
       title: "Penerangan",
-      description:
-        "Lampu jalan mati dan masalah penerangan.",
+      description: "Lampu jalan rusak dan penerangan lingkungan.",
+      color: "orange",
     },
     {
-      category: "keamanan",
-      icon: "◈",
+      id: "keamanan",
+      icon: "shield",
       title: "Keamanan",
-      description:
-        "Masalah keamanan fasilitas atau lingkungan.",
+      description: "Gangguan keamanan dan potensi bahaya publik.",
+      color: "cyan",
     },
     {
-      category: "lainnya",
-      icon: "⋯",
+      id: "lainnya",
+      icon: "document",
       title: "Lainnya",
-      description:
-        "Permasalahan publik lainnya.",
+      description: "Aspirasi dan pengaduan masyarakat lainnya.",
+      color: "pink",
     },
   ];
 
   return (
-    <main className="home">
+    <main className="laporkita-home">
       <Navbar />
 
       {/* BACKGROUND */}
-      <div className="home-background" aria-hidden="true">
-        <div className="background-orb background-orb-one" />
-        <div className="background-orb background-orb-two" />
-        <div className="background-grid" />
+
+      <div className="home-bg" aria-hidden="true">
+        <div className="home-bg-grid" />
+        <div className="home-orb home-orb-one" />
+        <div className="home-orb home-orb-two" />
+        <div className="home-orb home-orb-three" />
       </div>
 
       {/* HERO */}
-      <section className="hero">
-        <div className="hero-container">
-          <div className="hero-content">
+
+      <section className="home-hero">
+        <div className="home-hero-container">
+          <div className="home-hero-content">
             {isLoggedIn && (
-              <div className="hero-user-greeting">
-                <span className="hero-user-dot" />
-                <span>
-                  Halo, <strong>{username}</strong>
-                </span>
+              <div className="home-welcome">
+                <span className="home-online-dot" />
+                Selamat datang kembali,
+                <strong>{username}</strong>
               </div>
             )}
 
-            <div className="hero-badge">
-              <span className="badge-icon" aria-hidden="true">
-                ✦
-              </span>
-              <span>PLATFORM PELAPORAN PUBLIK</span>
+            <div className="home-hero-badge">
+              <Icon name="sparkle" size={17} />
+              <span>PLATFORM ASPIRASI MASYARAKAT</span>
             </div>
 
             <h1>
-              Lihat masalahnya.
+              Lihat Masalahnya.
               <br />
-              <span>Laporkan.</span>
-              <br />
-              Bersama, kita peduli.
+              <span className="home-gradient-text">Suarakan Perubahan.</span>
             </h1>
 
-            <p className="hero-description">
-              Setiap lingkungan memiliki masalah yang perlu
-              diperhatikan. Mulai dari jalan rusak, fasilitas
-              umum yang tidak layak, hingga lampu jalan yang mati.
+            <p className="home-hero-description">
+              Bersama <strong>LaporKita</strong>, setiap permasalahan di
+              lingkunganmu dapat disampaikan dengan lebih mudah, transparan, dan
+              terarah. Satu laporan kecil bisa menjadi awal perubahan besar.
             </p>
 
-            <p className="hero-description second">
-              <strong>LaporKita</strong> membantu masyarakat
-              menyampaikan permasalahan dengan cara yang lebih
-              mudah, terarah, dan dapat dipantau.
-            </p>
-
-            <div className="hero-actions">
-              <Link to={reportPath} className="hero-primary">
-                <span>Buat Laporan</span>
-                <span className="button-arrow" aria-hidden="true">
-                  →
-                </span>
+            <div className="home-hero-actions">
+              <Link to={reportPath} className="home-btn-primary">
+                Buat Laporan Sekarang
+                <Icon name="arrow" size={19} />
               </Link>
 
-              <a
-                href="#tentang-laporkita"
-                className="hero-secondary"
-              >
-                Kenali LaporKita
+              <a href="#cara-kerja" className="home-btn-secondary">
+                Pelajari Cara Kerja
               </a>
             </div>
 
-            <div className="hero-bottom-info">
-              <div className="info-item">
-                <div className="info-icon" aria-hidden="true">
-                  ✓
-                </div>
+            <div className="home-hero-features">
+              <div className="home-hero-feature">
+                <span>
+                  <Icon name="bolt" size={19} />
+                </span>
+
                 <div>
-                  <strong>Mudah</strong>
-                  <span>untuk digunakan</span>
+                  <strong>Mudah & Cepat</strong>
+                  <small>Pelaporan digital</small>
                 </div>
               </div>
 
-              <div className="info-divider" />
+              <div className="home-feature-divider" />
 
-              <div className="info-item">
-                <div className="info-icon" aria-hidden="true">
-                  ↗
-                </div>
+              <div className="home-hero-feature">
+                <span>
+                  <Icon name="shield" size={19} />
+                </span>
+
                 <div>
-                  <strong>Terarah</strong>
-                  <span>dalam menyampaikan</span>
+                  <strong>Transparan</strong>
+                  <small>Status terpantau</small>
                 </div>
               </div>
 
-              <div className="info-divider" />
+              <div className="home-feature-divider" />
 
-              <div className="info-item">
-                <div className="info-icon" aria-hidden="true">
-                  ◉
-                </div>
+              <div className="home-hero-feature">
+                <span>
+                  <Icon name="users" size={19} />
+                </span>
+
                 <div>
-                  <strong>Terpantau</strong>
-                  <span>perkembangannya</span>
+                  <strong>Untuk Semua</strong>
+                  <small>Aspirasi masyarakat</small>
                 </div>
               </div>
             </div>
           </div>
 
-          {/* ILUSTRASI */}
-          <div className="hero-visual" aria-hidden="true">
-            <div className="visual-glow" />
-            <div className="visual-circle circle-one" />
-            <div className="visual-circle circle-two" />
-            <div className="visual-circle circle-three" />
+          {/* HERO DASHBOARD */}
 
-            <div className="civic-illustration">
-              <div className="city">
-                <div className="building building-a">
-                  <span />
-                  <span />
-                  <span />
-                  <span />
-                </div>
+          <div className="home-hero-visual">
+            <div className="home-visual-glow" />
 
-                <div className="building building-b">
-                  <span />
-                  <span />
-                  <span />
-                  <span />
-                  <span />
-                  <span />
-                </div>
-
-                <div className="building building-c">
-                  <span />
-                  <span />
-                  <span />
-                  <span />
-                </div>
-              </div>
-
-              <div className="ground">
-                <div className="road-line road-line-a" />
-                <div className="road-line road-line-b" />
-
-                <div className="tree tree-one">
-                  <div className="tree-top" />
-                  <div className="tree-trunk" />
-                </div>
-
-                <div className="tree tree-two">
-                  <div className="tree-top" />
-                  <div className="tree-trunk" />
-                </div>
-              </div>
-
-              <div className="device">
-                <div className="device-glow" />
-
-                <div className="device-frame">
-                  <div className="device-top">
-                    <span />
-                    <span />
-                    <span />
+            <div className="home-dashboard">
+              <div className="home-dashboard-header">
+                <div className="home-dashboard-brand">
+                  <div className="home-dashboard-logo">
+                    <img src={logoLaporkita} alt="Logo LaporKita" />
                   </div>
 
-                  <div className="device-screen">
-                    <div className="screen-header">
-                      <div className="screen-logo">L</div>
-                      <div className="screen-title">LaporKita</div>
-                    </div>
-
-                    <div className="screen-content">
-                      <div className="screen-line line-long" />
-                      <div className="screen-line line-medium" />
-
-                      <div className="screen-card">
-                        <div className="screen-card-icon">+</div>
-                        <div>
-                          <span>Laporkan</span>
-                          <small>Masalah di sekitarmu</small>
-                        </div>
-                      </div>
-
-                      <div className="screen-card small">
-                        <div className="screen-card-icon">✓</div>
-                        <div>
-                          <span>Pantau</span>
-                          <small>Perkembangan laporan</small>
-                        </div>
-                      </div>
-                    </div>
+                  <div>
+                    <strong>LaporKita</strong>
+                    <span>Dashboard Monitoring</span>
                   </div>
                 </div>
+
+                <span className="home-dashboard-live">
+                  <span />
+                  PLATFORM AKTIF
+                </span>
               </div>
 
-              <div className="visual-card visual-card-top">
-                <div className="visual-card-icon">!</div>
-                <div>
-                  <strong>Temukan masalah</strong>
-                  <span>di lingkunganmu</span>
+              <div className="home-dashboard-divider" />
+
+              <div className="home-dashboard-overview">
+                <div className="home-overview-heading">
+                  <span>Ringkasan Laporan</span>
+
+                  <span className="home-overview-icon">
+                    <Icon name="document" size={18} />
+                  </span>
+                </div>
+
+                <strong>{stats.total.toLocaleString("id-ID")}</strong>
+
+                <p>Total laporan masyarakat tercatat</p>
+              </div>
+
+              <div className="home-dashboard-metrics">
+                <div className="home-metric-card">
+                  <div className="home-metric-icon blue">
+                    <Icon name="clock" size={19} />
+                  </div>
+
+                  <span>Diproses</span>
+                  <strong>{stats.diproses}</strong>
+                </div>
+
+                <div className="home-metric-card">
+                  <div className="home-metric-icon green">
+                    <Icon name="check" size={19} />
+                  </div>
+
+                  <span>Selesai</span>
+                  <strong>{stats.selesai}</strong>
                 </div>
               </div>
 
-              <div className="visual-card visual-card-bottom">
-                <div className="visual-card-icon blue">✓</div>
-                <div>
-                  <strong>Sampaikan laporan</strong>
-                  <span>untuk perubahan</span>
+              <div className="home-dashboard-progress">
+                <div className="home-progress-header">
+                  <span>Persentase Penyelesaian</span>
+
+                  <strong>
+                    {stats.total
+                      ? Math.round((stats.selesai / stats.total) * 100)
+                      : 0}
+                    %
+                  </strong>
+                </div>
+
+                <div className="home-progress-track">
+                  <div
+                    className="home-progress-fill"
+                    style={{
+                      width: `${
+                        stats.total ? (stats.selesai / stats.total) * 100 : 0
+                      }%`,
+                    }}
+                  />
                 </div>
               </div>
 
-              <div className="connection connection-one" />
-              <div className="connection connection-two" />
-              <div className="connection connection-three" />
+              <div className="home-dashboard-bottom">
+                <span className="home-dashboard-indicator">
+                  <span />
+                  Data dari sistem laporan
+                </span>
+
+                <Icon name="arrowUp" size={17} />
+              </div>
+            </div>
+
+            <div className="home-floating-card home-floating-one">
+              <div className="home-floating-icon">
+                <Icon name="shield" size={22} />
+              </div>
+
+              <div>
+                <strong>Transparansi Digital</strong>
+                <span>Pantau perkembangan laporan</span>
+              </div>
+            </div>
+
+            <div className="home-floating-card home-floating-two">
+              <div className="home-floating-icon blue">
+                <Icon name="document" size={21} />
+              </div>
+
+              <div>
+                <strong>Pelaporan Online</strong>
+                <span>Akses lebih praktis</span>
+              </div>
             </div>
           </div>
         </div>
+
+        <div className="home-hero-bottom-gradient" />
       </section>
 
       {/* STATISTIK */}
-      <section className="stats-section">
-        <div className="stats-container">
-          <div className="stats-header">
-            <span className="section-label">
-              LAPORKITA DALAM ANGKA
-            </span>
+
+      <section className="home-stats-section">
+        <div className="home-container">
+          <div className="home-section-heading center reveal">
+            <span className="home-section-badge">STATISTIK PLATFORM</span>
 
             <h2>
-              Setiap laporan
-              <span> punya arti.</span>
+              Setiap Laporan
+              <span> Memiliki Arti.</span>
             </h2>
 
             <p>
-              Setiap laporan menjadi bagian dari upaya bersama
-              untuk membuat lingkungan menjadi lebih baik.
+              Pantau jumlah laporan masyarakat dan perkembangan penanganannya
+              melalui data yang tersedia.
             </p>
           </div>
 
-          <div className="stats-grid">
+          <div className="home-stats-grid">
             <StatCard
-              icon="◉"
+              icon="document"
               value={stats.total}
-              title="Laporan Masuk"
-              description="Total laporan yang tercatat di sistem"
+              title="Total Laporan"
+              description="Laporan yang masuk ke platform"
+              type="blue"
             />
 
             <StatCard
-              icon="↗"
+              icon="clock"
               value={stats.diproses}
-              title="Ditindaklanjuti"
-              description="Laporan yang diverifikasi atau diproses"
+              title="Sedang Diproses"
+              description="Laporan diverifikasi atau diproses"
+              type="purple"
             />
 
             <StatCard
-              icon="✓"
+              icon="check"
               value={stats.selesai}
-              title="Selesai"
-              description="Laporan dengan status selesai"
+              title="Laporan Selesai"
+              description="Laporan berstatus selesai"
+              type="green"
             />
-
-            <article className="stat-card">
-              <div className="stat-icon" aria-hidden="true">
-                ★
-              </div>
-              <div className="stat-value">—</div>
-              <div className="stat-title">Kepuasan</div>
-              <div className="stat-description">
-                Data kepuasan belum tersedia
-              </div>
-            </article>
           </div>
         </div>
       </section>
 
       {/* CARA KERJA */}
-      <section className="how-section">
-        <div className="how-container">
-          <div className="how-header">
-            <span className="section-label">CARA KERJA</span>
+
+      <section className="home-how-section" id="cara-kerja">
+        <div className="home-container">
+          <div className="home-section-heading center reveal">
+            <span className="home-section-badge">CARA KERJA</span>
 
             <h2>
-              Melaporkan masalah
-              <span> jadi lebih mudah.</span>
+              Melapor Jadi
+              <span> Lebih Mudah.</span>
             </h2>
 
             <p>
-              LaporKita membantu menghubungkan laporan masyarakat
-              dengan proses yang lebih terarah.
+              Hanya dengan beberapa langkah sederhana, kamu bisa menyampaikan
+              permasalahan publik melalui LaporKita.
             </p>
           </div>
 
-          <div className="how-grid">
-            <article className="how-card">
-              <div className="how-number">01</div>
-              <div className="how-icon">+</div>
-              <h3>Temukan Masalah</h3>
+          <div className="home-how-grid">
+            <article className="home-how-card reveal">
+              <div className="home-how-number">01</div>
+
+              <div className="home-how-icon">
+                <Icon name="map" size={30} />
+              </div>
+
+              <h3>Tentukan Lokasi</h3>
+
               <p>
-                Temukan permasalahan publik di sekitar yang
-                membutuhkan perhatian.
+                Pilih lokasi terjadinya masalah agar laporan memiliki informasi
+                wilayah yang jelas.
               </p>
+
+              <span className="home-how-step">LANGKAH PERTAMA</span>
             </article>
 
-            <div className="how-connector" aria-hidden="true">
-              →
-            </div>
+            <article className="home-how-card reveal">
+              <div className="home-how-number">02</div>
 
-            <article className="how-card">
-              <div className="how-number">02</div>
-              <div className="how-icon">↑</div>
+              <div className="home-how-icon">
+                <Icon name="document" size={30} />
+              </div>
+
               <h3>Buat Laporan</h3>
+
               <p>
-                Sampaikan laporan dengan informasi, lokasi,
-                deskripsi, dan bukti pendukung.
+                Jelaskan permasalahan, pilih kategori, dan sertakan bukti foto
+                jika tersedia.
               </p>
+
+              <span className="home-how-step">LANGKAH KEDUA</span>
             </article>
 
-            <div className="how-connector" aria-hidden="true">
-              →
-            </div>
+            <article className="home-how-card reveal">
+              <div className="home-how-number">03</div>
 
-            <article className="how-card">
-              <div className="how-number">03</div>
-              <div className="how-icon">◉</div>
-              <h3>Pantau Proses</h3>
+              <div className="home-how-icon">
+                <Icon name="shield" size={30} />
+              </div>
+
+              <h3>Pantau Perkembangan</h3>
+
               <p>
-                Pantau perkembangan laporan dari diterima
-                hingga selesai ditangani.
+                Lihat status laporan dan ikuti perkembangan penanganannya
+                melalui platform.
               </p>
+
+              <span className="home-how-step">LANGKAH KETIGA</span>
             </article>
           </div>
         </div>
       </section>
 
       {/* KATEGORI */}
-      <section className="category-section">
-        <div className="category-container">
-          <div className="category-header">
+
+      <section className="home-category-section">
+        <div className="home-container">
+          <div className="home-section-heading split reveal">
             <div>
-              <span className="section-label">KATEGORI LAPORAN</span>
+              <span className="home-section-badge">KATEGORI LAPORAN</span>
+
               <h2>
-                Laporkan berbagai
-                <span> masalah publik.</span>
+                Apa yang Ingin
+                <span> Kamu Laporkan?</span>
               </h2>
+
+              <p>
+                Pilih kategori permasalahan yang sesuai dengan kondisi di
+                lingkunganmu.
+              </p>
             </div>
 
-            <p>
-              Pilih kategori yang sesuai agar laporan lebih
-              mudah dipahami dan ditindaklanjuti.
-            </p>
+            <Link to="/laporan" className="home-text-link">
+              Lihat Semua Laporan
+              <Icon name="arrow" size={19} />
+            </Link>
           </div>
 
-          <div className="category-grid">
-            {categories.map((item) => (
+          <div className="home-category-grid">
+            {categories.map((category) => (
               <Link
-                key={item.category}
-                to={`/laporan?category=${encodeURIComponent(item.category)}`}
-                className="category-card"
+                key={category.id}
+                to={`/laporan?category=${encodeURIComponent(category.id)}`}
+                className={`home-category-card reveal ${category.color}`}
               >
-                <div className="category-icon" aria-hidden="true">
-                  {item.icon}
+                <div className="home-category-top">
+                  <div className="home-category-icon">
+                    <Icon name={category.icon} size={27} />
+                  </div>
+
+                  <span className="home-category-arrow">
+                    <Icon name="arrowUp" size={20} />
+                  </span>
                 </div>
 
-                <div className="category-content">
-                  <h3>{item.title}</h3>
-                  <p>{item.description}</p>
-                </div>
+                <h3>{category.title}</h3>
 
-                <span className="category-arrow" aria-hidden="true">
-                  →
-                </span>
+                <p>{category.description}</p>
               </Link>
             ))}
-          </div>
-
-          <div className="category-footer">
-            <Link to="/laporan" className="category-all-button">
-              Lihat Semua Laporan <span>→</span>
-            </Link>
           </div>
         </div>
       </section>
 
       {/* LAPORAN TERBARU */}
-      <section className="latest-section">
-        <div className="latest-container">
-          <div className="latest-header">
+
+      <section className="home-latest-section">
+        <div className="home-container">
+          <div className="home-section-heading split reveal">
             <div>
-              <span className="section-label">LAPORAN TERBARU</span>
+              <span className="home-section-badge">LAPORAN MASYARAKAT</span>
+
               <h2>
-                Lihat laporan
-                <span> di sekitar kita.</span>
+                Laporan
+                <span> Terbaru.</span>
               </h2>
+
+              <p>
+                Lihat laporan terkini yang telah disampaikan melalui LaporKita.
+              </p>
             </div>
 
-            <Link to="/laporan" className="latest-see-all">
-              Lihat semua <span>→</span>
+            <Link to="/laporan" className="home-text-link">
+              Jelajahi Semua
+              <Icon name="arrow" size={19} />
             </Link>
           </div>
 
-          {reportsLoading ? (
-            <p className="latest-empty" role="status">
-              Memuat laporan terbaru...
-            </p>
-          ) : reportsError ? (
-            <div className="latest-empty" role="alert">
-              <p>{reportsError}</p>
+          {loading ? (
+            <div className="home-report-message" role="status">
+              <div className="home-loading-spinner" />
+              <p>Memuat laporan terbaru...</p>
+            </div>
+          ) : error ? (
+            <div className="home-report-message" role="alert">
+              <Icon name="document" size={34} />
+
+              <p>{error}</p>
+
               <button
                 type="button"
-                className="category-all-button"
-                onClick={() =>
-                  window.dispatchEvent(new Event("laporanUpdated"))
-                }
+                className="home-btn-primary"
+                onClick={() => setRefreshKey((prev) => prev + 1)}
               >
-                Coba lagi <span>↻</span>
+                Coba Lagi
               </button>
             </div>
-          ) : reports.length === 0 ? (
-            <div className="latest-empty">
-              <p>Belum ada laporan yang tersedia.</p>
+          ) : latestReports.length === 0 ? (
+            <div className="home-report-message">
+              <Icon name="document" size={36} />
 
-              <Link to={reportPath} className="hero-primary">
-                Jadilah yang pertama melapor →
+              <h3>Belum Ada Laporan</h3>
+
+              <p>
+                Jadilah yang pertama menyampaikan laporan melalui LaporKita.
+              </p>
+
+              <Link to={reportPath} className="home-btn-primary">
+                Buat Laporan
+                <Icon name="arrow" size={18} />
               </Link>
             </div>
           ) : (
-            <div className="latest-grid">
-              {reports.map((report) => (
-                <LatestReportCard
-                  key={report.id}
-                  report={report}
-                />
+            <div className="home-reports-grid">
+              {latestReports.map((report) => (
+                <ReportCard key={report.id} report={report} />
               ))}
             </div>
           )}
         </div>
       </section>
 
-      {/* TENTANG LAPORKITA */}
-      <section id="tentang-laporkita" className="about-laporkita">
-        <div className="about-container">
-          <div className="about-header">
-            <span className="about-label">TENTANG LAPORKITA</span>
+      {/* FINAL CTA */}
 
-            <h2>
-              Satu laporan,
-              <br />
-              <span>satu langkah menuju perubahan.</span>
-            </h2>
+      <section className="home-cta-section">
+        <div className="home-container">
+          <div className="home-cta-card reveal">
+            <div className="home-cta-orb one" />
+            <div className="home-cta-orb two" />
 
-            <p>
-              LaporKita hadir untuk menghubungkan masyarakat
-              dengan proses pelayanan publik yang lebih terbuka,
-              terarah, dan mudah dipantau.
-            </p>
-          </div>
-
-          <div className="about-grid">
-            <article className="about-card">
-              <div className="about-card-number">01</div>
-              <div className="about-card-content">
-                <span className="about-card-label">MASALAH</span>
-                <h3>Masalah di sekitar sering tidak terdengar.</h3>
-                <p>
-                  Kerusakan jalan, fasilitas umum, dan berbagai
-                  persoalan publik membutuhkan tempat pelaporan
-                  yang mudah diakses.
-                </p>
-              </div>
-            </article>
-
-            <article className="about-card about-card-highlight">
-              <div className="about-card-number">02</div>
-              <div className="about-card-content">
-                <span className="about-card-label">SOLUSI</span>
-                <h3>LaporKita membuat pelaporan lebih sederhana.</h3>
-                <p>
-                  Masyarakat dapat menyampaikan laporan secara
-                  digital lengkap dengan informasi, lokasi,
-                  dan bukti pendukung.
-                </p>
-              </div>
-            </article>
-
-            <article className="about-card">
-              <div className="about-card-number">03</div>
-              <div className="about-card-content">
-                <span className="about-card-label">DAMPAK</span>
-                <h3>Laporan tidak berhenti setelah dikirim.</h3>
-                <p>
-                  Masyarakat dapat memantau perkembangan laporan
-                  dan mengetahui status penanganannya.
-                </p>
-              </div>
-            </article>
-          </div>
-
-          <div className="about-bottom">
-            <div className="about-bottom-icon">LK</div>
-
-            <div className="about-bottom-text">
-              <strong>
-                Dari masyarakat, untuk perubahan yang nyata.
-              </strong>
-              <span>
-                Bersama membangun pelayanan publik yang
-                lebih responsif dan transparan.
+            <div className="home-cta-content">
+              <span className="home-cta-badge">
+                <Icon name="sparkle" size={17} />
+                BERSAMA MEMBANGUN PERUBAHAN
               </span>
+
+              <h2>
+                Perubahan Dimulai
+                <br />
+                dari <span>Suaramu.</span>
+              </h2>
+
+              <p>
+                Jangan biarkan masalah di lingkunganmu terabaikan. Sampaikan
+                laporan dan ikut berkontribusi membangun pelayanan publik yang
+                lebih baik.
+              </p>
+
+              <Link to={reportPath} className="home-cta-button">
+                Buat Laporan Sekarang
+                <Icon name="arrow" size={20} />
+              </Link>
             </div>
 
-            <Link to={reportPath} className="about-button">
-              <span>Buat Laporan</span>
-              <span className="about-button-arrow">→</span>
-            </Link>
+            <div className="home-cta-decoration">
+              <div className="home-cta-circle">
+                <Icon name="users" size={80} />
+              </div>
+            </div>
           </div>
-        </div>
-      </section>
-
-      {/* FINAL CTA */}
-      <section className="final-cta">
-        <div className="final-cta-glow" aria-hidden="true" />
-
-        <div className="final-cta-content">
-          <span className="section-label">SUARAKAN PERUBAHAN</span>
-
-          <h2>
-            Ada masalah di sekitarmu?
-            <br />
-            <span>Jangan hanya diam.</span>
-          </h2>
-
-          <p>
-            Sampaikan laporan melalui LaporKita dan ikut menjadi
-            bagian dari perubahan pelayanan publik yang lebih baik.
-          </p>
-
-          <Link to={reportPath} className="final-cta-button">
-            <span>Buat Laporan Sekarang</span>
-            <span aria-hidden="true">→</span>
-          </Link>
         </div>
       </section>
 
       {/* FOOTER */}
-      <footer className="home-footer">
-        <div className="footer-container">
-          <div className="footer-brand">
-            <div className="footer-logo">L</div>
 
-            <div>
-              <strong>LaporKita</strong>
-              <span>Pelayanan Publik Digital</span>
+      <footer className="home-footer">
+        <div className="home-container">
+          <div className="home-footer-grid">
+            <div className="home-footer-brand">
+              <Link to="/" className="home-footer-logo">
+                <img src={logoLaporkita} alt="Logo LaporKita" />
+                <span>LaporKita</span>
+              </Link>
+
+              <p>
+                Platform pengaduan masyarakat berbasis digital untuk membantu
+                menyampaikan aspirasi dan permasalahan fasilitas publik secara
+                lebih mudah dan transparan.
+              </p>
+
+              <div className="home-footer-tags">
+                <span>#LaporKita</span>
+                <span>#KotaCerdas</span>
+                <span>#PelayananPublik</span>
+              </div>
+            </div>
+
+            <div className="home-footer-links">
+              <div>
+                <h4>Platform</h4>
+
+                <Link to="/">Beranda</Link>
+                <Link to="/laporan">Semua Laporan</Link>
+                <Link to={reportPath}>Buat Laporan</Link>
+                <a href="#cara-kerja">Cara Kerja</a>
+              </div>
+
+              <div>
+                <h4>Akun</h4>
+
+                {isLoggedIn ? (
+                  <>
+                    <Link to="/profil">Profil Saya</Link>
+                    <Link to="/laporan-saya">Laporan Saya</Link>
+                  </>
+                ) : (
+                  <>
+                    <Link to="/login">Masuk</Link>
+                    <Link to="/register">Daftar</Link>
+                  </>
+                )}
+              </div>
+
+              <div>
+                <h4>Informasi</h4>
+
+                <p>
+                  Sistem pengaduan dan aspirasi masyarakat berbasis website.
+                </p>
+
+                <span className="home-footer-status">
+                  <span />
+                  Platform Digital
+                </span>
+              </div>
             </div>
           </div>
 
-          <nav className="footer-links" aria-label="Navigasi footer">
-            <Link to="/">Beranda</Link>
-            <Link to="/laporan">Laporan</Link>
-            <Link to={reportPath}>Buat Laporan</Link>
+          <div className="home-footer-bottom">
+            <p>
+              © {new Date().getFullYear()} LaporKita. All Rights Reserved.
+            </p>
 
-            {!isLoggedIn && <Link to="/login">Masuk</Link>}
-          </nav>
-
-          <div className="footer-copy">
-            © {new Date().getFullYear()} LaporKita
+            <span>Dibuat untuk pelayanan publik yang lebih baik.</span>
           </div>
         </div>
       </footer>
     </main>
   );
 }
-
-export default Home;

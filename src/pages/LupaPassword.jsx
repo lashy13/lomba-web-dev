@@ -1,6 +1,22 @@
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import {
+  ArrowLeft,
+  ArrowRight,
+  Check,
+  CheckCircle2,
+  Clock3,
+  Eye,
+  EyeOff,
+  KeyRound,
+  LockKeyhole,
+  Mail,
+  RefreshCw,
+  ShieldCheck,
+  AlertCircle,
+} from "lucide-react";
+
 import "../styles/lupa-password.css";
 import logo from "../assets/logo-laporkita.png";
 
@@ -9,171 +25,248 @@ const API_URL = (
   "https://laporkita.lashy.blitz.cloud"
 ).replace(/\/+$/, "");
 
-async function postAuth(path, body) {
-  const response = await fetch(
-    `${API_URL}/api/auth/forgot-password/${path}`,
-    {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(body),
-    },
-  );
+const OTP_LENGTH = 6;
+const RESEND_SECONDS = 60;
 
-  let result;
+async function postAuth(path, body) {
+  let response;
 
   try {
-    result = await response.json();
+    response = await fetch(
+      `${API_URL}/api/auth/forgot-password/${path}`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(body),
+      }
+    );
   } catch {
+    throw new Error(
+      "Tidak dapat terhubung ke server. Periksa koneksi internet kamu."
+    );
+  }
+
+  const result = await response.json().catch(() => null);
+
+  if (!result) {
     throw new Error("Respons server tidak valid.");
   }
 
-  if (!response.ok || !result.success) {
+  if (!response.ok || result.success === false) {
     throw new Error(
-      result.message || "Permintaan gagal. Silakan coba kembali.",
+      result.message ||
+        result.error ||
+        "Permintaan gagal. Silakan coba kembali."
     );
   }
 
   return result;
 }
 
-function EyeIcon({ visible }) {
-  return visible ? (
-    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <path
-        d="M2.5 12C2.5 12 6 5.5 12 5.5C18 5.5 21.5 12 21.5 12C21.5 12 18 18.5 12 18.5C6 18.5 2.5 12 2.5 12Z"
-        stroke="currentColor"
-        strokeWidth="1.8"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <circle
-        cx="12"
-        cy="12"
-        r="3"
-        stroke="currentColor"
-        strokeWidth="1.8"
-      />
-    </svg>
-  ) : (
-    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <path
-        d="M3 3L21 21"
-        stroke="currentColor"
-        strokeWidth="1.8"
-        strokeLinecap="round"
-      />
-      <path
-        d="M10.5 5.8C11 5.6 11.5 5.5 12 5.5C18 5.5 21.5 12 21.5 12C21.5 12 20.2 14.4 18 16.2"
-        stroke="currentColor"
-        strokeWidth="1.8"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <path
-        d="M6 7.2C3.7 9.1 2.5 12 2.5 12C2.5 12 6 18.5 12 18.5C13.4 18.5 14.7 18.2 15.8 17.7"
-        stroke="currentColor"
-        strokeWidth="1.8"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
-
-function MailIcon() {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <rect
-        x="3"
-        y="5"
-        width="18"
-        height="14"
-        rx="2"
-        stroke="currentColor"
-        strokeWidth="1.8"
-      />
-      <path
-        d="M3 7L12 13L21 7"
-        stroke="currentColor"
-        strokeWidth="1.8"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
-
-function LockIcon() {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <rect
-        x="5"
-        y="10"
-        width="14"
-        height="11"
-        rx="2"
-        stroke="currentColor"
-        strokeWidth="1.8"
-      />
-      <path
-        d="M8 10V7C8 4.8 9.8 3 12 3C14.2 3 16 4.8 16 7V10"
-        stroke="currentColor"
-        strokeWidth="1.8"
-        strokeLinecap="round"
-      />
-      <circle cx="12" cy="15.5" r="1.2" fill="currentColor" />
-    </svg>
-  );
-}
-
-function ShieldIcon() {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <path
-        d="M12 3L19 6V11C19 15.5 16.1 19.1 12 21C7.9 19.1 5 15.5 5 11V6L12 3Z"
-        stroke="currentColor"
-        strokeWidth="1.8"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <path
-        d="M9 12L11 14L15 10"
-        stroke="currentColor"
-        strokeWidth="1.8"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
-
 function LupaPassword() {
   const navigate = useNavigate();
 
+  // =========================
+  // STATE
+  // =========================
+
   const [step, setStep] = useState(1);
+
   const [email, setEmail] = useState("");
-  const [otp, setOtp] = useState("");
+
+  const [otpDigits, setOtpDigits] = useState(
+    Array(OTP_LENGTH).fill("")
+  );
+
   const [resetToken, setResetToken] = useState("");
 
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
 
   const [showNewPassword, setShowNewPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] =
+    useState(false);
 
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+
   const [isSending, setIsSending] = useState(false);
+  const [resendTimer, setResendTimer] = useState(0);
+  const [resetCompleted, setResetCompleted] = useState(false);
+
+  const otpRefs = useRef([]);
+  const redirectTimer = useRef(null);
+
+  const otp = otpDigits.join("");
+
+  // =========================
+  // TIMER KIRIM ULANG
+  // =========================
+
+  useEffect(() => {
+    if (resendTimer <= 0) return;
+
+    const timer = window.setTimeout(() => {
+      setResendTimer((prev) => Math.max(0, prev - 1));
+    }, 1000);
+
+    return () => window.clearTimeout(timer);
+  }, [resendTimer]);
+
+  // =========================
+  // CLEANUP REDIRECT
+  // =========================
+
+  useEffect(() => {
+    return () => {
+      if (redirectTimer.current) {
+        window.clearTimeout(redirectTimer.current);
+      }
+    };
+  }, []);
+
+  // =========================
+  // AUTO FOCUS OTP
+  // =========================
+
+  useEffect(() => {
+    if (step !== 2) return;
+
+    const timer = window.setTimeout(() => {
+      const firstEmpty = otpDigits.findIndex(
+        (digit) => digit === ""
+      );
+
+      const targetIndex =
+        firstEmpty === -1 ? OTP_LENGTH - 1 : firstEmpty;
+
+      otpRefs.current[targetIndex]?.focus();
+    }, 100);
+
+    return () => window.clearTimeout(timer);
+  }, [step]);
+
+  // =========================
+  // HELPER
+  // =========================
 
   const clearMessages = () => {
     setError("");
     setSuccess("");
   };
 
-  const handleEmailSubmit = async (e) => {
-    e.preventDefault();
+  const resetOtp = () => {
+    setOtpDigits(Array(OTP_LENGTH).fill(""));
+  };
+
+  const focusOtp = (index) => {
+    if (index < 0 || index >= OTP_LENGTH) return;
+
+    otpRefs.current[index]?.focus();
+  };
+
+  // =========================
+  // OTP INPUT
+  // =========================
+
+  const handleOtpChange = (index, value) => {
+    const cleanValue = value.replace(/\D/g, "");
+
+    if (!cleanValue) {
+      setOtpDigits((prev) => {
+        const updated = [...prev];
+        updated[index] = "";
+        return updated;
+      });
+
+      return;
+    }
+
+    setOtpDigits((prev) => {
+      const updated = [...prev];
+
+      cleanValue
+        .slice(0, OTP_LENGTH - index)
+        .split("")
+        .forEach((digit, offset) => {
+          updated[index + offset] = digit;
+        });
+
+      return updated;
+    });
+
+    const nextIndex = Math.min(
+      index + cleanValue.length,
+      OTP_LENGTH - 1
+    );
+
+    focusOtp(nextIndex);
+  };
+
+  const handleOtpKeyDown = (index, event) => {
+    if (event.key === "Backspace") {
+      event.preventDefault();
+
+      if (otpDigits[index]) {
+        setOtpDigits((prev) => {
+          const updated = [...prev];
+          updated[index] = "";
+          return updated;
+        });
+      } else if (index > 0) {
+        setOtpDigits((prev) => {
+          const updated = [...prev];
+          updated[index - 1] = "";
+          return updated;
+        });
+
+        focusOtp(index - 1);
+      }
+    }
+
+    if (event.key === "ArrowLeft") {
+      event.preventDefault();
+      focusOtp(index - 1);
+    }
+
+    if (event.key === "ArrowRight") {
+      event.preventDefault();
+      focusOtp(index + 1);
+    }
+  };
+
+  const handleOtpPaste = (event) => {
+    event.preventDefault();
+
+    const pasted = event.clipboardData
+      .getData("text")
+      .replace(/\D/g, "")
+      .slice(0, OTP_LENGTH);
+
+    if (!pasted) return;
+
+    const updated = Array(OTP_LENGTH).fill("");
+
+    pasted.split("").forEach((digit, index) => {
+      updated[index] = digit;
+    });
+
+    setOtpDigits(updated);
+
+    focusOtp(
+      Math.min(pasted.length, OTP_LENGTH - 1)
+    );
+  };
+
+  // =========================
+  // STEP 1: REQUEST OTP
+  // =========================
+
+  const handleEmailSubmit = async (event) => {
+    event.preventDefault();
+
     if (isSending) return;
 
     clearMessages();
@@ -193,29 +286,41 @@ function LupaPassword() {
       });
 
       setEmail(cleanEmail);
-      setOtp("");
+
+      resetOtp();
       setResetToken("");
       setNewPassword("");
       setConfirmPassword("");
+
+      setResendTimer(RESEND_SECONDS);
       setStep(2);
-      setSuccess(result.message || "Kode OTP berhasil dikirim.");
+
+      setSuccess(
+        result.message ||
+          "Jika email terdaftar, kode verifikasi akan dikirim."
+      );
     } catch (err) {
-      setError(err.message || "Gagal mengirim kode OTP.");
+      setError(
+        err.message || "Gagal mengirim kode verifikasi."
+      );
     } finally {
       setIsSending(false);
     }
   };
 
-  const handleOtpSubmit = async (e) => {
-    e.preventDefault();
+  // =========================
+  // STEP 2: VERIFY OTP
+  // =========================
+
+  const handleOtpSubmit = async (event) => {
+    event.preventDefault();
+
     if (isSending) return;
 
     clearMessages();
 
-    const cleanOtp = otp.trim();
-
-    if (!/^\d{6}$/.test(cleanOtp)) {
-      setError("Kode verifikasi harus terdiri dari 6 angka.");
+    if (!/^\d{6}$/.test(otp)) {
+      setError("Masukkan 6 digit kode verifikasi.");
       return;
     }
 
@@ -224,54 +329,99 @@ function LupaPassword() {
     try {
       const result = await postAuth("verify", {
         email: email.trim().toLowerCase(),
-        otp: cleanOtp,
+        otp,
       });
 
       if (!result.resetToken) {
-        throw new Error("Token reset tidak diterima dari server.");
+        throw new Error(
+          "Token reset tidak diterima dari server."
+        );
       }
 
       setResetToken(result.resetToken);
       setStep(3);
-      setSuccess("Email berhasil diverifikasi. Buat password baru.");
+
+      setSuccess(
+        "Kode berhasil diverifikasi. Silakan buat password baru."
+      );
     } catch (err) {
-      setError(err.message || "Verifikasi OTP gagal.");
+      setError(
+        err.message || "Kode verifikasi tidak valid."
+      );
     } finally {
       setIsSending(false);
     }
   };
 
-  const handlePasswordSubmit = async (e) => {
-    e.preventDefault();
-    if (isSending) return;
+  // =========================
+  // RESEND OTP
+  // =========================
+
+  const handleResendOtp = async () => {
+    if (isSending || resendTimer > 0) return;
+
+    clearMessages();
+    setIsSending(true);
+
+    try {
+      const result = await postAuth("request", {
+        email: email.trim().toLowerCase(),
+      });
+
+      resetOtp();
+      setResetToken("");
+      setResendTimer(RESEND_SECONDS);
+
+      setSuccess(
+        result.message ||
+          "Permintaan kode verifikasi baru berhasil."
+      );
+
+      focusOtp(0);
+    } catch (err) {
+      setError(
+        err.message || "Gagal mengirim ulang kode."
+      );
+    } finally {
+      setIsSending(false);
+    }
+  };
+
+  // =========================
+  // STEP 3: RESET PASSWORD
+  // =========================
+
+  const handlePasswordSubmit = async (event) => {
+    event.preventDefault();
+
+    if (isSending || resetCompleted) return;
 
     clearMessages();
 
-    const password = newPassword;
-    const confirmation = confirmPassword;
-
-    if (!password || !confirmation) {
-      setError("Silakan lengkapi kedua kolom password.");
+    if (!newPassword || !confirmPassword) {
+      setError("Lengkapi kedua kolom password.");
       return;
     }
 
-    if (password.length < 8) {
-      setError("Password harus memiliki minimal 8 karakter.");
+    if (newPassword.length < 8) {
+      setError("Password minimal 8 karakter.");
       return;
     }
 
-    if (password.length > 72) {
-      setError("Password tidak boleh lebih dari 72 karakter.");
+    if (newPassword.length > 72) {
+      setError("Password maksimal 72 karakter.");
       return;
     }
 
-    if (password !== confirmation) {
-      setError("Konfirmasi password tidak sesuai.");
+    if (newPassword !== confirmPassword) {
+      setError("Konfirmasi password tidak cocok.");
       return;
     }
 
     if (!resetToken) {
-      setError("Sesi reset tidak tersedia. Silakan minta OTP baru.");
+      setError(
+        "Sesi reset tidak tersedia. Silakan verifikasi ulang."
+      );
       setStep(1);
       return;
     }
@@ -282,43 +432,53 @@ function LupaPassword() {
       const result = await postAuth("reset", {
         email: email.trim().toLowerCase(),
         resetToken,
-        password,
+        password: newPassword,
       });
 
-      setSuccess(
-        result.message || "Password berhasil diperbarui. Silakan login.",
-      );
-
+      setResetCompleted(true);
       setResetToken("");
+
       setNewPassword("");
       setConfirmPassword("");
 
-      window.setTimeout(() => {
+      setSuccess(
+        result.message ||
+          "Password berhasil diperbarui."
+      );
+
+      redirectTimer.current = window.setTimeout(() => {
         navigate("/login", { replace: true });
-      }, 1500);
+      }, 2000);
     } catch (err) {
-      setError(err.message || "Gagal memperbarui password.");
+      setError(
+        err.message || "Gagal memperbarui password."
+      );
     } finally {
       setIsSending(false);
     }
   };
 
+  // =========================
+  // BACK
+  // =========================
+
   const handleBack = () => {
-    if (isSending) return;
+    if (isSending || resetCompleted) return;
 
     clearMessages();
 
     if (step === 3) {
       setResetToken("");
-      setOtp("");
       setNewPassword("");
       setConfirmPassword("");
+
+      resetOtp();
       setStep(2);
       return;
     }
 
     if (step === 2) {
-      setOtp("");
+      resetOtp();
       setResetToken("");
       setStep(1);
       return;
@@ -327,132 +487,203 @@ function LupaPassword() {
     navigate("/login");
   };
 
-  const handleResendOtp = async () => {
-    if (isSending) return;
+  // =========================
+  // DISPLAY DATA
+  // =========================
 
-    clearMessages();
-    setIsSending(true);
-    setOtp("");
-    setResetToken("");
+  const stepInfo = {
+    1: {
+      label: "PEMULIHAN AKUN",
+      title: "Lupa Password?",
+      description:
+        "Jangan khawatir. Masukkan email yang terdaftar untuk memulihkan akses akun LaporKita.",
+      icon: Mail,
+    },
 
-    try {
-      const result = await postAuth("request", {
-        email: email.trim().toLowerCase(),
-      });
+    2: {
+      label: "VERIFIKASI KEAMANAN",
+      title: "Verifikasi Email",
+      description:
+        "Masukkan 6 digit kode verifikasi yang dikirim ke email kamu.",
+      icon: ShieldCheck,
+    },
 
-      setSuccess(result.message || "OTP baru berhasil dikirim.");
-    } catch (err) {
-      setError(err.message || "Gagal meminta OTP baru.");
-    } finally {
-      setIsSending(false);
-    }
+    3: {
+      label: "ATUR PASSWORD",
+      title: "Password Baru",
+      description:
+        "Buat password baru untuk mengamankan akun LaporKita kamu.",
+      icon: KeyRound,
+    },
   };
 
-  const getTitle = () => {
-    if (step === 1) return "Lupa password?";
-    if (step === 2) return "Verifikasi email";
-    return "Buat password baru";
-  };
-
-  const getDescription = () => {
-    if (step === 1) {
-      return "Masukkan email akun LaporKita untuk memulai pemulihan password.";
-    }
-
-    if (step === 2) {
-      return `Masukkan kode verifikasi yang dikirim ke ${email}.`;
-    }
-
-    return `Buat password baru untuk akun ${email}.`;
-  };
+  const currentStep = stepInfo[step];
+  const StepIcon = currentStep.icon;
 
   const passwordsMatch =
-    confirmPassword.length > 0 && newPassword === confirmPassword;
+    confirmPassword.length > 0 &&
+    newPassword === confirmPassword;
+
+  const passwordValid =
+    newPassword.length >= 8 &&
+    newPassword.length <= 72;
 
   const passwordReady =
-    newPassword.length >= 8 &&
-    newPassword.length <= 72 &&
+    passwordValid &&
     passwordsMatch &&
     Boolean(resetToken);
 
+  // =========================
+  // RENDER
+  // =========================
+
   return (
     <main className="forgot-password-page">
-      <div className="forgot-password-background">
+      {/* BACKGROUND */}
+
+      <div
+        className="forgot-password-background"
+        aria-hidden="true"
+      >
         <div className="forgot-password-orb forgot-password-orb-one" />
         <div className="forgot-password-orb forgot-password-orb-two" />
+        <div className="forgot-password-orb forgot-password-orb-three" />
         <div className="forgot-password-grid" />
       </div>
 
+      {/* CARD */}
+
       <section className="forgot-password-card">
+        {/* LOGO */}
+
         <div className="forgot-password-logo">
           <img src={logo} alt="Logo LaporKita" />
+          <div>
+            <strong>LaporKita</strong>
+            <span>Platform Pengaduan Publik</span>
+          </div>
         </div>
+
+        {/* ICON */}
 
         <div className="forgot-password-icon">
-          {step === 1 && <MailIcon />}
-          {step === 2 && <ShieldIcon />}
-          {step === 3 && <LockIcon />}
+          <StepIcon size={28} strokeWidth={1.8} />
         </div>
+
+        {/* HEADER */}
 
         <div className="forgot-password-header">
-          <span className="forgot-password-label">LAPORKITA ACCOUNT</span>
-          <h1>{getTitle()}</h1>
-          <p>{getDescription()}</p>
+          <span className="forgot-password-label">
+            {currentStep.label}
+          </span>
+
+          <h1>{currentStep.title}</h1>
+
+          <p>{currentStep.description}</p>
         </div>
+
+        {/* PROGRESS */}
 
         <div className="forgot-password-steps">
-          <div className={`forgot-step ${step >= 1 ? "active" : ""}`}>
-            <span>1</span>
-            <small>Email</small>
-          </div>
+          {[
+            { number: 1, label: "Email" },
+            { number: 2, label: "Verifikasi" },
+            { number: 3, label: "Password" },
+          ].map((item, index) => (
+            <div
+              className="forgot-step-group"
+              key={item.number}
+            >
+              <div
+                className={`forgot-step ${
+                  step === item.number ? "active" : ""
+                } ${
+                  step > item.number ? "completed" : ""
+                }`}
+              >
+                <span className="forgot-step-number">
+                  {step > item.number ? (
+                    <Check size={15} />
+                  ) : (
+                    item.number
+                  )}
+                </span>
 
-          <div className="forgot-step-line" />
+                <small>{item.label}</small>
+              </div>
 
-          <div className={`forgot-step ${step >= 2 ? "active" : ""}`}>
-            <span>2</span>
-            <small>Verifikasi</small>
-          </div>
-
-          <div className="forgot-step-line" />
-
-          <div className={`forgot-step ${step >= 3 ? "active" : ""}`}>
-            <span>3</span>
-            <small>Password</small>
-          </div>
+              {index < 2 && (
+                <div
+                  className={`forgot-step-line ${
+                    step > item.number ? "completed" : ""
+                  }`}
+                />
+              )}
+            </div>
+          ))}
         </div>
 
+        {/* ALERT */}
+
         {error && (
-          <div className="forgot-password-message error" role="alert">
-            <span>!</span>
+          <div
+            className="forgot-password-message error"
+            role="alert"
+          >
+            <AlertCircle size={18} />
             <p>{error}</p>
           </div>
         )}
 
         {success && (
-          <div className="forgot-password-message success" role="status">
-            <span>✓</span>
+          <div
+            className="forgot-password-message success"
+            role="status"
+          >
+            <CheckCircle2 size={18} />
             <p>{success}</p>
           </div>
         )}
 
+        {/* =========================
+            STEP 1 - EMAIL
+            ========================= */}
+
         {step === 1 && (
-          <form className="forgot-password-form" onSubmit={handleEmailSubmit}>
+          <form
+            className="forgot-password-form"
+            onSubmit={handleEmailSubmit}
+          >
             <div className="forgot-form-group">
-              <label htmlFor="forgot-email">Email</label>
+              <label htmlFor="forgot-email">
+                Alamat Email
+              </label>
 
               <div className="forgot-input-wrapper">
-                <span className="forgot-input-icon">@</span>
+                <Mail
+                  className="forgot-input-icon"
+                  size={19}
+                />
+
                 <input
                   id="forgot-email"
                   type="email"
                   value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  onChange={(event) =>
+                    setEmail(event.target.value)
+                  }
                   placeholder="Masukkan email terdaftar"
                   autoComplete="email"
+                  disabled={isSending}
                   autoFocus
                   required
                 />
               </div>
+
+              <small className="forgot-field-hint">
+                Gunakan email yang terhubung dengan akun
+                LaporKita.
+              </small>
             </div>
 
             <button
@@ -460,58 +691,142 @@ function LupaPassword() {
               className="forgot-submit-button"
               disabled={isSending}
             >
-              <span>
-                {isSending ? "Mengirim permintaan..." : "Kirim kode verifikasi"}
-              </span>
-              <span>→</span>
+              {isSending ? (
+                <>
+                  <RefreshCw
+                    size={18}
+                    className="forgot-spinning"
+                  />
+                  Mengirim...
+                </>
+              ) : (
+                <>
+                  Kirim Kode Verifikasi
+                  <ArrowRight size={18} />
+                </>
+              )}
             </button>
           </form>
         )}
+
+        {/* =========================
+            STEP 2 - OTP
+            ========================= */}
 
         {step === 2 && (
-          <form className="forgot-password-form" onSubmit={handleOtpSubmit}>
-            <div className="forgot-form-group">
-              <label htmlFor="forgot-otp">Kode verifikasi</label>
+          <form
+            className="forgot-password-form"
+            onSubmit={handleOtpSubmit}
+          >
+            <div className="forgot-otp-email">
+              <Mail size={16} />
+              <span>{email}</span>
+            </div>
 
-              <div className="forgot-input-wrapper">
-                <span className="forgot-input-icon">#</span>
-                <input
-                  id="forgot-otp"
-                  type="text"
-                  inputMode="numeric"
-                  pattern="[0-9]{6}"
-                  maxLength={6}
-                  value={otp}
-                  onChange={(e) =>
-                    setOtp(e.target.value.replace(/\D/g, "").slice(0, 6))
-                  }
-                  placeholder="Masukkan 6 digit kode"
-                  autoComplete="one-time-code"
-                  autoFocus
-                  required
-                />
+            <div className="forgot-form-group">
+              <label
+                className="forgot-otp-label"
+                htmlFor="forgot-otp-0"
+              >
+                Kode Verifikasi
+              </label>
+
+              <div
+                className="forgot-otp-container"
+                onPaste={handleOtpPaste}
+              >
+                {otpDigits.map((digit, index) => (
+                  <input
+                    key={index}
+                    ref={(element) => {
+                      otpRefs.current[index] = element;
+                    }}
+                    id={`forgot-otp-${index}`}
+                    type="text"
+                    inputMode="numeric"
+                    maxLength={1}
+                    value={digit}
+                    onChange={(event) =>
+                      handleOtpChange(
+                        index,
+                        event.target.value
+                      )
+                    }
+                    onKeyDown={(event) =>
+                      handleOtpKeyDown(index, event)
+                    }
+                    onFocus={(event) =>
+                      event.target.select()
+                    }
+                    autoComplete={
+                      index === 0
+                        ? "one-time-code"
+                        : "off"
+                    }
+                    aria-label={`Digit OTP ${index + 1}`}
+                    disabled={isSending}
+                    className={`forgot-otp-box ${
+                      digit ? "filled" : ""
+                    }`}
+                  />
+                ))}
               </div>
+
+              <p className="forgot-otp-helper">
+                <ShieldCheck size={14} />
+                Jangan bagikan kode kepada siapa pun.
+              </p>
             </div>
 
             <button
               type="submit"
               className="forgot-submit-button"
-              disabled={isSending}
+              disabled={
+                isSending || !/^\d{6}$/.test(otp)
+              }
             >
-              <span>{isSending ? "Memverifikasi..." : "Verifikasi kode"}</span>
-              <span>→</span>
+              {isSending ? (
+                <>
+                  <RefreshCw
+                    size={18}
+                    className="forgot-spinning"
+                  />
+                  Memverifikasi...
+                </>
+              ) : (
+                <>
+                  Verifikasi Kode
+                  <ArrowRight size={18} />
+                </>
+              )}
             </button>
 
-            <button
-              type="button"
-              className="forgot-resend-button"
-              onClick={handleResendOtp}
-              disabled={isSending}
-            >
-              {isSending ? "Memproses..." : "Kirim ulang kode"}
-            </button>
+            <div className="forgot-otp-resend">
+              <p>Belum menerima kode?</p>
+
+              {resendTimer > 0 ? (
+                <div className="forgot-resend-timer">
+                  <Clock3 size={15} />
+                  Kirim ulang dalam {resendTimer} detik
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  className="forgot-resend-button"
+                  onClick={handleResendOtp}
+                  disabled={isSending}
+                >
+                  <RefreshCw size={15} />
+                  Kirim Ulang Kode
+                </button>
+              )}
+            </div>
           </form>
         )}
+
+        {/* =========================
+            STEP 3 - NEW PASSWORD
+            ========================= */}
 
         {step === 3 && (
           <form
@@ -519,131 +834,201 @@ function LupaPassword() {
             onSubmit={handlePasswordSubmit}
           >
             <div className="forgot-form-group">
-              <label htmlFor="new-password">Password baru</label>
+              <label htmlFor="new-password">
+                Password Baru
+              </label>
 
               <div className="forgot-input-wrapper">
-                <span className="forgot-input-icon">
-                  <LockIcon />
-                </span>
+                <LockKeyhole
+                  className="forgot-input-icon"
+                  size={19}
+                />
 
                 <input
                   id="new-password"
-                  type={showNewPassword ? "text" : "password"}
+                  type={
+                    showNewPassword
+                      ? "text"
+                      : "password"
+                  }
                   value={newPassword}
-                  onChange={(e) => {
-                    setNewPassword(e.target.value);
-                    setError("");
-                  }}
+                  onChange={(event) =>
+                    setNewPassword(event.target.value)
+                  }
                   placeholder="Masukkan password baru"
                   autoComplete="new-password"
-                  autoFocus
                   minLength={8}
                   maxLength={72}
+                  disabled={isSending || resetCompleted}
+                  autoFocus
                   required
                 />
 
                 <button
                   type="button"
                   className="forgot-password-toggle"
-                  onClick={() => setShowNewPassword((prev) => !prev)}
+                  onClick={() =>
+                    setShowNewPassword((prev) => !prev)
+                  }
                   aria-label={
                     showNewPassword
                       ? "Sembunyikan password"
                       : "Tampilkan password"
                   }
                 >
-                  <EyeIcon visible={showNewPassword} />
+                  {showNewPassword ? (
+                    <EyeOff size={19} />
+                  ) : (
+                    <Eye size={19} />
+                  )}
                 </button>
+              </div>
+
+              <div
+                className={`forgot-password-requirement ${
+                  passwordValid ? "valid" : ""
+                }`}
+              >
+                <CheckCircle2 size={14} />
+                Gunakan 8–72 karakter.
               </div>
             </div>
 
             <div className="forgot-form-group">
-              <label htmlFor="confirm-password">Konfirmasi password</label>
+              <label htmlFor="confirm-password">
+                Konfirmasi Password
+              </label>
 
               <div className="forgot-input-wrapper">
-                <span className="forgot-input-icon">
-                  <LockIcon />
-                </span>
+                <LockKeyhole
+                  className="forgot-input-icon"
+                  size={19}
+                />
 
                 <input
                   id="confirm-password"
-                  type={showConfirmPassword ? "text" : "password"}
+                  type={
+                    showConfirmPassword
+                      ? "text"
+                      : "password"
+                  }
                   value={confirmPassword}
-                  onChange={(e) => {
-                    setConfirmPassword(e.target.value);
-                    setError("");
-                  }}
+                  onChange={(event) =>
+                    setConfirmPassword(
+                      event.target.value
+                    )
+                  }
                   placeholder="Ulangi password baru"
                   autoComplete="new-password"
                   minLength={8}
                   maxLength={72}
+                  disabled={isSending || resetCompleted}
                   required
                 />
 
                 <button
                   type="button"
                   className="forgot-password-toggle"
-                  onClick={() => setShowConfirmPassword((prev) => !prev)}
+                  onClick={() =>
+                    setShowConfirmPassword(
+                      (prev) => !prev
+                    )
+                  }
                   aria-label={
                     showConfirmPassword
                       ? "Sembunyikan password"
                       : "Tampilkan password"
                   }
                 >
-                  <EyeIcon visible={showConfirmPassword} />
+                  {showConfirmPassword ? (
+                    <EyeOff size={19} />
+                  ) : (
+                    <Eye size={19} />
+                  )}
                 </button>
               </div>
 
               {confirmPassword.length > 0 && (
-                <small
-                  style={{
-                    color: passwordsMatch ? "#15803d" : "#dc2626",
-                    display: "block",
-                    marginTop: "6px",
-                  }}
+                <div
+                  className={`forgot-password-requirement ${
+                    passwordsMatch ? "valid" : "invalid"
+                  }`}
                 >
-                  {passwordsMatch
-                    ? "Konfirmasi password cocok."
-                    : "Konfirmasi password belum cocok."}
-                </small>
-              )}
-            </div>
+                  {passwordsMatch ? (
+                    <CheckCircle2 size={14} />
+                  ) : (
+                    <AlertCircle size={14} />
+                  )}
 
-            <div className="forgot-password-hint">
-              Password harus terdiri dari 8–72 karakter.
+                  {passwordsMatch
+                    ? "Password sudah cocok."
+                    : "Password belum cocok."}
+                </div>
+              )}
             </div>
 
             <button
               type="submit"
               className="forgot-submit-button"
-              disabled={isSending}
+              disabled={
+                isSending ||
+                !passwordReady ||
+                resetCompleted
+              }
             >
-              <span>
-                {isSending ? "Menyimpan password..." : "Simpan password"}
-              </span>
-              <span>✓</span>
+              {isSending ? (
+                <>
+                  <RefreshCw
+                    size={18}
+                    className="forgot-spinning"
+                  />
+                  Menyimpan...
+                </>
+              ) : resetCompleted ? (
+                <>
+                  <CheckCircle2 size={18} />
+                  Password Berhasil Diubah
+                </>
+              ) : (
+                <>
+                  Simpan Password Baru
+                  <ArrowRight size={18} />
+                </>
+              )}
             </button>
 
-            {!passwordReady && (
-              <small className="forgot-password-hint">
-                Pastikan kedua password sama dan minimal 8 karakter.
-              </small>
+            {resetCompleted && (
+              <p className="forgot-redirect-info">
+                Mengarahkan ke halaman login...
+              </p>
             )}
           </form>
         )}
 
-        <button
-          type="button"
-          className="forgot-back-button"
-          onClick={handleBack}
-          disabled={isSending}
-        >
-          <span>←</span>
-          <span>{step === 1 ? "Kembali ke Login" : "Kembali"}</span>
-        </button>
+        {/* BACK BUTTON */}
+
+        {!resetCompleted && (
+          <button
+            type="button"
+            className="forgot-back-button"
+            onClick={handleBack}
+            disabled={isSending}
+          >
+            <ArrowLeft size={17} />
+
+            {step === 1
+              ? "Kembali ke Login"
+              : "Kembali"}
+          </button>
+        )}
+
+        {/* FOOTER */}
 
         <div className="forgot-password-footer">
-          LaporKita · Pelayanan publik digital
+          <ShieldCheck size={15} />
+          <span>
+            LaporKita · Pelayanan Publik Digital
+          </span>
         </div>
       </section>
     </main>

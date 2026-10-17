@@ -16,8 +16,7 @@ import {
 import "../styles/admin-dashboard.css";
 
 const API_URL = (
-  import.meta.env.VITE_API_URL ||
-  "https://laporkita.lashy.blitz.cloud"
+  import.meta.env.VITE_API_URL || "https://laporkita.lashy.blitz.cloud"
 ).replace(/\/+$/, "");
 
 const STATUS_OPTIONS = ["Menunggu", "Diverifikasi", "Dalam Proses", "Selesai"];
@@ -300,7 +299,9 @@ function AdminDashboard() {
 
         <div className="admin-sidebar-bottom">
           <div className="admin-profile">
-            <div className="admin-avatar">A</div>
+            <div className="admin-avatar">
+              <img src="/logo-laporkita.png" alt="Logo LaporKita" />
+            </div>
 
             <div>
               <strong>Administrator</strong>
