@@ -17,8 +17,16 @@
   overflow: clip;
   color: var(--ls-text);
   background:
-    radial-gradient(ellipse at 8% 4%, rgba(191, 219, 254, 0.55), transparent 38%),
-    radial-gradient(ellipse at 95% 28%, rgba(219, 234, 254, 0.65), transparent 35%),
+    radial-gradient(
+      ellipse at 8% 4%,
+      rgba(191, 219, 254, 0.55),
+      transparent 38%
+    ),
+    radial-gradient(
+      ellipse at 95% 28%,
+      rgba(219, 234, 254, 0.65),
+      transparent 35%
+    ),
     linear-gradient(155deg, #f8fbff 0%, #edf5ff 46%, #ffffff 100%);
   font-family: inherit;
 }
@@ -73,7 +81,11 @@
   left: -130px;
   width: 330px;
   height: 330px;
-  background: radial-gradient(circle at 35% 35%, rgba(96, 165, 250, 0.24), rgba(191, 219, 254, 0.03) 72%);
+  background: radial-gradient(
+    circle at 35% 35%,
+    rgba(96, 165, 250, 0.24),
+    rgba(191, 219, 254, 0.03) 72%
+  );
   animation: ls-float-one 13s ease-in-out infinite;
 }
 
@@ -82,7 +94,11 @@
   right: -110px;
   width: 380px;
   height: 380px;
-  background: radial-gradient(circle at 40% 40%, rgba(147, 197, 253, 0.25), rgba(219, 234, 254, 0.02) 72%);
+  background: radial-gradient(
+    circle at 40% 40%,
+    rgba(147, 197, 253, 0.25),
+    rgba(219, 234, 254, 0.02) 72%
+  );
   animation: ls-float-two 16s ease-in-out infinite;
 }
 
@@ -91,23 +107,42 @@
   left: 38%;
   width: 220px;
   height: 220px;
-  background: radial-gradient(circle, rgba(191, 219, 254, 0.2), transparent 70%);
+  background: radial-gradient(
+    circle,
+    rgba(191, 219, 254, 0.2),
+    transparent 70%
+  );
   animation: ls-float-three 18s ease-in-out infinite;
 }
 
 @keyframes ls-float-one {
-  0%, 100% { transform: translate3d(0, 0, 0); }
-  50% { transform: translate3d(35px, 24px, 0); }
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0);
+  }
+  50% {
+    transform: translate3d(35px, 24px, 0);
+  }
 }
 
 @keyframes ls-float-two {
-  0%, 100% { transform: translate3d(0, 0, 0); }
-  50% { transform: translate3d(-28px, -35px, 0); }
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0);
+  }
+  50% {
+    transform: translate3d(-28px, -35px, 0);
+  }
 }
 
 @keyframes ls-float-three {
-  0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
-  50% { transform: translate3d(20px, -25px, 0) scale(1.08); }
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  50% {
+    transform: translate3d(20px, -25px, 0) scale(1.08);
+  }
 }
 
 /* =========================================
@@ -132,7 +167,9 @@
   color: #637795;
   font-size: 13px;
   font-weight: 650;
-  transition: color 0.25s ease, transform 0.25s ease;
+  transition:
+    color 0.25s ease,
+    transform 0.25s ease;
   animation: ls-fade-up 0.55s ease both;
 }
 
@@ -145,7 +182,9 @@
   border-radius: 10px;
   background: rgba(255, 255, 255, 0.75);
   font-size: 18px;
-  transition: transform 0.25s ease, background 0.25s ease;
+  transition:
+    transform 0.25s ease,
+    background 0.25s ease;
 }
 
 .laporan-saya-back:hover {
@@ -199,8 +238,13 @@
 }
 
 @keyframes ls-pulse {
-  0%, 100% { box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1); }
-  50% { box-shadow: 0 0 0 7px rgba(59, 130, 246, 0.04); }
+  0%,
+  100% {
+    box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1);
+  }
+  50% {
+    box-shadow: 0 0 0 7px rgba(59, 130, 246, 0.04);
+  }
 }
 
 .laporan-saya-heading h1 {
@@ -240,7 +284,10 @@
   font-size: 12px;
   font-weight: 750;
   box-shadow: 0 10px 25px rgba(37, 99, 235, 0.19);
-  transition: transform 0.25s ease, box-shadow 0.25s ease, filter 0.25s ease;
+  transition:
+    transform 0.25s ease,
+    box-shadow 0.25s ease,
+    filter 0.25s ease;
 }
 
 .laporan-saya-create:hover {
@@ -294,13 +341,20 @@
   overflow: hidden;
   border: 1px solid rgba(255, 255, 255, 0.88);
   border-radius: 22px;
-  background: linear-gradient(145deg, rgba(255, 255, 255, 0.94), rgba(241, 247, 255, 0.85));
+  background: linear-gradient(
+    145deg,
+    rgba(255, 255, 255, 0.94),
+    rgba(241, 247, 255, 0.85)
+  );
   box-shadow:
     0 12px 35px rgba(51, 95, 157, 0.055),
     inset 0 1px 0 rgba(255, 255, 255, 0.95);
   animation: ls-fade-up 0.7s ease both;
   animation-delay: 0.1s;
-  transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease;
+  transition:
+    transform 0.3s ease,
+    box-shadow 0.3s ease,
+    border-color 0.3s ease;
 }
 
 .laporan-saya-summary-card:nth-child(2) {
@@ -374,7 +428,11 @@
   height: 150px;
   border: 1px solid rgba(96, 165, 250, 0.12);
   border-radius: 50%;
-  background: radial-gradient(circle, rgba(191, 219, 254, 0.25), transparent 68%);
+  background: radial-gradient(
+    circle,
+    rgba(191, 219, 254, 0.25),
+    transparent 68%
+  );
 }
 
 .laporan-saya-summary-decoration::after {
@@ -459,7 +517,11 @@
   overflow: hidden;
   border: 1px solid rgba(219, 231, 248, 0.9);
   border-radius: 19px;
-  background: linear-gradient(145deg, rgba(255, 255, 255, 0.96), rgba(249, 252, 255, 0.94));
+  background: linear-gradient(
+    145deg,
+    rgba(255, 255, 255, 0.96),
+    rgba(249, 252, 255, 0.94)
+  );
   color: inherit;
   box-shadow: 0 8px 27px rgba(41, 75, 123, 0.045);
   transition:
@@ -577,8 +639,13 @@
 }
 
 @keyframes ls-status-pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.4; }
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.4;
+  }
 }
 
 .laporan-saya-card h3 {
@@ -606,6 +673,7 @@
   line-height: 1.8;
   overflow-wrap: anywhere;
   -webkit-box-orient: vertical;
+  line-clamp: 2;
   -webkit-line-clamp: 2;
 }
 
@@ -670,7 +738,9 @@
   background: #f2f7ff;
   color: #3979dc;
   font-size: 16px;
-  transition: transform 0.25s ease, background 0.25s ease;
+  transition:
+    transform 0.25s ease,
+    background 0.25s ease;
 }
 
 .laporan-saya-card:hover .laporan-saya-arrow {
@@ -701,7 +771,9 @@
   border-radius: 10px;
   background: transparent;
   cursor: pointer;
-  transition: background 0.2s ease, border-color 0.2s ease;
+  transition:
+    background 0.2s ease,
+    border-color 0.2s ease;
 }
 
 .laporan-saya-menu-button:hover,
@@ -756,7 +828,9 @@
   font-weight: 650;
   text-align: left;
   cursor: pointer;
-  transition: background 0.2s ease, color 0.2s ease;
+  transition:
+    background 0.2s ease,
+    color 0.2s ease;
 }
 
 .laporan-saya-dropdown-item:hover {
@@ -834,8 +908,12 @@
 }
 
 @keyframes ls-skeleton-shimmer {
-  from { background-position: 100% 0; }
-  to { background-position: -100% 0; }
+  from {
+    background-position: 100% 0;
+  }
+  to {
+    background-position: -100% 0;
+  }
 }
 
 /* =========================================
@@ -851,7 +929,11 @@
   padding: 42px 25px;
   border: 1px solid rgba(219, 231, 248, 0.9);
   border-radius: 22px;
-  background: linear-gradient(145deg, rgba(255, 255, 255, 0.96), rgba(244, 249, 255, 0.9));
+  background: linear-gradient(
+    145deg,
+    rgba(255, 255, 255, 0.96),
+    rgba(244, 249, 255, 0.9)
+  );
   text-align: center;
   box-shadow: 0 12px 35px rgba(51, 95, 157, 0.05);
   animation: ls-fade-up 0.5s ease both;
@@ -912,7 +994,9 @@
   font-weight: 750;
   cursor: pointer;
   box-shadow: 0 8px 20px rgba(37, 99, 235, 0.17);
-  transition: transform 0.25s ease, box-shadow 0.25s ease;
+  transition:
+    transform 0.25s ease,
+    box-shadow 0.25s ease;
 }
 
 .laporan-saya-empty-button:hover {
@@ -962,7 +1046,11 @@
   padding: 18px 20px;
   border: 1px solid rgba(191, 219, 254, 0.65);
   border-radius: 15px;
-  background: linear-gradient(110deg, rgba(239, 246, 255, 0.8), rgba(255, 255, 255, 0.72));
+  background: linear-gradient(
+    110deg,
+    rgba(239, 246, 255, 0.8),
+    rgba(255, 255, 255, 0.72)
+  );
 }
 
 .laporan-saya-footer-icon {
@@ -1000,8 +1088,12 @@
 }
 
 @keyframes ls-overlay-in {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
 .laporan-saya-modal {
@@ -1087,7 +1179,10 @@
   font-size: 12px;
   font-weight: 750;
   cursor: pointer;
-  transition: transform 0.2s ease, background 0.2s ease, box-shadow 0.2s ease;
+  transition:
+    transform 0.2s ease,
+    background 0.2s ease,
+    box-shadow 0.2s ease;
 }
 
 .laporan-saya-modal-actions button:hover:not(:disabled) {
@@ -1129,7 +1224,9 @@
 }
 
 @keyframes ls-spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 /* =========================================
@@ -1352,12 +1449,7 @@
   isolation: isolate;
   border: 1px solid rgba(37, 99, 235, 0.14);
   border-radius: 16px;
-  background: linear-gradient(
-    135deg,
-    #eaf3ff,
-    #dbeafe,
-    #f0f7ff
-  );
+  background: linear-gradient(135deg, #eaf3ff, #dbeafe, #f0f7ff);
 }
 
 .laporan-saya-card-image img {

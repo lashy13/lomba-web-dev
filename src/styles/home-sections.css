@@ -1,4 +1,3 @@
-
 /* ========================================
    GLOBAL SECTION STYLES
 ======================================== */
@@ -593,6 +592,7 @@
   display: -webkit-box;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
+  line-clamp: 2;
 
   margin: 0 0 10px;
   overflow: hidden;
@@ -609,6 +609,7 @@
   display: -webkit-box;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 3;
+  line-clamp: 3;
 
   margin: 0;
   padding: 0;

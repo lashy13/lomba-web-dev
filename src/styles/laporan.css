@@ -1,4 +1,3 @@
-
 /* =========================================
    LAPORKITA — REPORT EXPLORER
    Blue / White Gradient UI
@@ -31,13 +30,7 @@
       rgba(148, 215, 255, 0.2),
       transparent 34%
     ),
-    linear-gradient(
-      155deg,
-      #f5f9ff 0%,
-      #ffffff 35%,
-      #edf5ff 72%,
-      #f9fcff 100%
-    );
+    linear-gradient(155deg, #f5f9ff 0%, #ffffff 35%, #edf5ff 72%, #f9fcff 100%);
   font-family: "DM Sans", sans-serif;
 }
 
@@ -138,11 +131,7 @@
     linear-gradient(rgba(72, 131, 211, 0.09) 1px, transparent 1px),
     linear-gradient(90deg, rgba(72, 131, 211, 0.09) 1px, transparent 1px);
   background-size: 48px 48px;
-  mask-image: linear-gradient(
-    to bottom,
-    black,
-    transparent 65%
-  );
+  mask-image: linear-gradient(to bottom, black, transparent 65%);
 }
 
 @keyframes laporan-orb-float {
@@ -286,12 +275,7 @@
 
 .laporan-intro h1 span {
   color: transparent;
-  background: linear-gradient(
-    100deg,
-    #2474e8 0%,
-    #429bf6 48%,
-    #69c9f7 100%
-  );
+  background: linear-gradient(100deg, #2474e8 0%, #429bf6 48%, #69c9f7 100%);
   background-clip: text;
   -webkit-background-clip: text;
 }
@@ -323,12 +307,7 @@
   overflow: hidden;
   border: 1px solid rgba(255, 255, 255, 0.3);
   border-radius: 13px;
-  background: linear-gradient(
-    115deg,
-    #2879ef,
-    #438ff5 56%,
-    #5aaff7
-  );
+  background: linear-gradient(115deg, #2879ef, #438ff5 56%, #5aaff7);
   color: #ffffff !important;
   font-size: 12px;
   font-weight: 800;
@@ -508,11 +487,7 @@
   place-items: center;
   border: 1px solid rgba(255, 255, 255, 0.85);
   border-radius: 15px;
-  background: linear-gradient(
-    145deg,
-    #e7f1ff,
-    #d9eaff
-  );
+  background: linear-gradient(145deg, #e7f1ff, #d9eaff);
   color: #327ce8;
   font-size: 23px;
   box-shadow: 0 5px 15px rgba(48, 119, 219, 0.09);
@@ -668,11 +643,7 @@
   padding: 0 15px;
   border: 1px solid #e3ebf6;
   border-radius: 13px;
-  background: linear-gradient(
-    120deg,
-    #ffffff,
-    #f9fbff
-  );
+  background: linear-gradient(120deg, #ffffff, #f9fbff);
   transition:
     border-color 0.25s ease,
     box-shadow 0.25s ease,
@@ -800,11 +771,7 @@
   padding: 19px;
   border: 1px solid #e0ebfb;
   border-radius: 15px;
-  background: linear-gradient(
-    135deg,
-    #f7faff,
-    #edf5ff
-  );
+  background: linear-gradient(135deg, #f7faff, #edf5ff);
   animation: laporan-panel-in 0.25s ease both;
 }
 
@@ -918,11 +885,7 @@
 
 .filter-chip.active {
   border-color: rgba(53, 127, 233, 0.16);
-  background: linear-gradient(
-    120deg,
-    #e8f2ff,
-    #f1f7ff
-  );
+  background: linear-gradient(120deg, #e8f2ff, #f1f7ff);
   color: #216bd2;
   box-shadow:
     0 3px 12px rgba(47, 117, 215, 0.06),
@@ -998,11 +961,7 @@
   overflow: hidden;
   border: 1px solid rgba(142, 173, 217, 0.23);
   border-radius: 17px;
-  background: linear-gradient(
-    145deg,
-    #ffffff,
-    #fbfdff
-  );
+  background: linear-gradient(145deg, #ffffff, #fbfdff);
   box-shadow: 0 5px 18px rgba(35, 75, 129, 0.025);
   animation: laporan-card-enter 0.55s ease both;
   animation-delay: calc(var(--card-index, 0) * 45ms);
@@ -1045,12 +1004,7 @@
   min-height: 100%;
   flex: 0 0 auto;
   overflow: hidden;
-  background: linear-gradient(
-    145deg,
-    #e8f2ff,
-    #d8eaff 50%,
-    #edf9ff
-  );
+  background: linear-gradient(145deg, #e8f2ff, #d8eaff 50%, #edf9ff);
 }
 
 .laporan-card-image {
@@ -1096,12 +1050,7 @@
       rgba(255, 255, 255, 0.95),
       transparent 38%
     ),
-    linear-gradient(
-      145deg,
-      #e5f1ff,
-      #d4e7ff 52%,
-      #eaf8ff
-    );
+    linear-gradient(145deg, #e5f1ff, #d4e7ff 52%, #eaf8ff);
 }
 
 .dummy-image-orb {
@@ -1261,6 +1210,7 @@
   font-weight: 800;
   line-height: 1.55;
   letter-spacing: -0.2px;
+  line-clamp: 2;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
 }
@@ -1274,17 +1224,14 @@
   line-height: 1.8;
   overflow-wrap: anywhere;
   -webkit-box-orient: vertical;
+  line-clamp: 2;
   -webkit-line-clamp: 2;
 }
 
 .laporan-card-divider {
   height: 1px;
   margin: 14px 0 11px;
-  background: linear-gradient(
-    90deg,
-    #e8eef7,
-    rgba(232, 238, 247, 0.3)
-  );
+  background: linear-gradient(90deg, #e8eef7, rgba(232, 238, 247, 0.3));
 }
 
 .laporan-card-meta {
@@ -1317,6 +1264,7 @@
   overflow-wrap: anywhere;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
+  line-clamp: 2;
 }
 
 .laporan-card-detail {
@@ -1457,11 +1405,7 @@
   place-items: center;
   border: 1px solid #dceaff;
   border-radius: 22px;
-  background: linear-gradient(
-    145deg,
-    #f0f6ff,
-    #dfedff
-  );
+  background: linear-gradient(145deg, #f0f6ff, #dfedff);
   color: #4288e9;
   font-size: 30px;
   box-shadow: 0 8px 25px rgba(48, 119, 219, 0.07);
@@ -1515,11 +1459,7 @@
   padding: 0 16px;
   border: 1px solid #d5e5fb;
   border-radius: 10px;
-  background: linear-gradient(
-    120deg,
-    #edf5ff,
-    #e2efff
-  );
+  background: linear-gradient(120deg, #edf5ff, #e2efff);
   color: #2f76d3;
   cursor: pointer;
   font-size: 11px;
@@ -1554,12 +1494,7 @@
   overflow: hidden;
   border: 1px solid rgba(255, 255, 255, 0.3);
   border-radius: 22px;
-  background: linear-gradient(
-    115deg,
-    #174fba 0%,
-    #2679e9 48%,
-    #56b8f2 100%
-  );
+  background: linear-gradient(115deg, #174fba 0%, #2679e9 48%, #56b8f2 100%);
   box-shadow:
     0 15px 40px rgba(38, 113, 220, 0.15),
     0 0 30px rgba(57, 145, 246, 0.07);
@@ -2270,7 +2205,6 @@
     transition-duration: 0.01ms !important;
   }
 }
-
 
 /* ========================================
    FOTO ASLI PADA KARTU LAPORAN
